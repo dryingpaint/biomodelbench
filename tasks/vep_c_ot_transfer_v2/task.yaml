@@ -15,7 +15,7 @@ data_files:
   - bundle/train.parquet
   - bundle/test.parquet
   - bundle/prompt.md
-wall_clock_hours: 24
+wall_clock_hours: 10
 sources:
   train: Open Targets Genetics credible_set release (studyType=gwas)
   test: TraitGym complex_traits_matched_9 (Chen et al. 2024)
