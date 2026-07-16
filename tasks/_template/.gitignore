@@ -1,0 +1,14 @@
+# Per-task ignores. Copy this into your task dir.
+_data/
+bundle/*.parquet
+bundle/*.npz
+bundle/*.pkl
+hidden/
+runs/**/*.parquet
+runs/**/*.npz
+runs/**/*.pkl
+runs/**/agent_log.jsonl
+runs/**/agent_stderr.txt
+runs/**/feats_*
+runs/**/preds_*
+runs/**/checkpoint/

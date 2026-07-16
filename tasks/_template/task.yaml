@@ -1,0 +1,19 @@
+id: <your_task_id>
+title: <short title>
+modality: <dna | protein | rna | cell | ...>
+compute_tier: <T0 | T1 | T2>
+headline_metric: <auprc | auroc | spearman | mae | ...>
+description: |
+  One-paragraph description of the task, including train source, test
+  source, and what the agent has to do.
+answer_file: answer.parquet
+data_files:
+  - bundle/train.parquet
+  - bundle/test.parquet
+  - bundle/prompt.md
+wall_clock_hours: 4
+sources:
+  train: <public source URL or paper reference>
+  test: <public source URL or paper reference>
+anti_leak:
+  policy: <how you prevent train↔test contamination; drop rules etc.>
