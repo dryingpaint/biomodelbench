@@ -63,40 +63,71 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
         <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
           Runs ({task.runs.length})
         </div>
-        <div className="border border-stone-200 bg-white rounded overflow-hidden">
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-2 text-xs uppercase tracking-wider font-semibold text-stone-500 border-b border-stone-200">
-            <div>Run ID</div>
-            <div className="text-right">AUPRC</div>
-            <div className="text-right">AUROC</div>
-            <div className="text-right">Coverage</div>
-            <div className="text-right">Δ best baseline</div>
-          </div>
-          {task.runs.length === 0 && (
-            <div className="px-4 py-3 text-sm text-stone-500">No runs recorded yet.</div>
-          )}
-          {task.runs.map((r) => (
-            <Link
-              key={r.runId}
-              href={`/tasks/${task.id}/runs/${r.runId}/`}
-              className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-2 text-sm border-b border-stone-100 last:border-b-0 hover:bg-stone-50"
-            >
-              <div className="font-mono text-stone-900 truncate">{r.runId}</div>
-              <div className="text-right font-mono tabular-nums text-stone-800">
-                {r.auprc !== null && r.auprc !== undefined ? r.auprc.toFixed(4) : "—"}
-              </div>
-              <div className="text-right font-mono tabular-nums text-stone-800">
-                {r.auroc !== null && r.auroc !== undefined ? r.auroc.toFixed(4) : "—"}
-              </div>
-              <div className="text-right font-mono tabular-nums text-stone-800">
-                {r.coverage !== null && r.coverage !== undefined ? r.coverage.toFixed(2) : "—"}
-              </div>
-              <div className="text-right font-mono tabular-nums text-stone-800">
-                {r.gapVsBestBaseline
-                  ? `${r.gapVsBestBaseline.delta_auprc >= 0 ? "+" : ""}${r.gapVsBestBaseline.delta_auprc.toFixed(4)}`
-                  : "—"}
-              </div>
-            </Link>
-          ))}
+        <div className="border border-stone-200 bg-white rounded overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-xs uppercase tracking-wider font-semibold text-stone-500 border-b border-stone-200">
+              <tr>
+                <th className="text-left px-4 py-2">Run ID</th>
+                <th className="text-left px-4 py-2">Model</th>
+                <th className="text-right px-4 py-2">AUPRC</th>
+                <th className="text-right px-4 py-2">AUROC</th>
+                <th className="text-right px-4 py-2">Coverage</th>
+                <th className="text-right px-4 py-2">Δ baseline</th>
+                <th className="text-right px-4 py-2">Cost</th>
+                <th className="text-right px-4 py-2">Turns</th>
+                <th className="text-right px-4 py-2">Duration</th>
+              </tr>
+            </thead>
+            <tbody>
+              {task.runs.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-3 text-sm text-stone-500 text-center">
+                    No runs recorded yet.
+                  </td>
+                </tr>
+              )}
+              {task.runs.map((r) => (
+                <tr key={r.runId} className="border-b border-stone-100 last:border-b-0 hover:bg-stone-50">
+                  <td className="px-4 py-2">
+                    <Link
+                      href={`/tasks/${task.id}/runs/${r.runId}/`}
+                      className="font-mono text-stone-900 hover:underline"
+                    >
+                      {r.runId}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2 font-mono text-xs text-stone-800">
+                    {r.primaryModel ?? "—"}
+                  </td>
+                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
+                    {r.auprc !== null && r.auprc !== undefined ? r.auprc.toFixed(4) : "—"}
+                  </td>
+                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
+                    {r.auroc !== null && r.auroc !== undefined ? r.auroc.toFixed(4) : "—"}
+                  </td>
+                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
+                    {r.coverage !== null && r.coverage !== undefined ? r.coverage.toFixed(2) : "—"}
+                  </td>
+                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
+                    {r.gapVsBestBaseline
+                      ? `${r.gapVsBestBaseline.delta_auprc >= 0 ? "+" : ""}${r.gapVsBestBaseline.delta_auprc.toFixed(4)}`
+                      : "—"}
+                  </td>
+                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
+                    {r.totalCostUsd !== null && r.totalCostUsd !== undefined
+                      ? `$${r.totalCostUsd.toFixed(2)}`
+                      : "—"}
+                  </td>
+                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
+                    {r.numTurns ?? "—"}
+                  </td>
+                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
+                    {r.durationSeconds ? `${(r.durationSeconds / 60).toFixed(1)}m` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 

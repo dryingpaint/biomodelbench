@@ -58,13 +58,21 @@ export default async function RunPage({
         <Metric label="Brier" value={fmt(run.brier)} hint="lower is better" />
         <Metric label="Coverage" value={fmt(run.coverage)} hint="frac of rows scored" />
         {run.gapVsBestBaseline && (
-          <>
-            <Metric
-              label={`Δ vs ${run.gapVsBestBaseline.name}`}
-              value={`${run.gapVsBestBaseline.delta_auprc >= 0 ? "+" : ""}${run.gapVsBestBaseline.delta_auprc.toFixed(4)}`}
-              hint={`baseline ${run.gapVsBestBaseline.baseline_auprc.toFixed(4)}`}
-            />
-          </>
+          <Metric
+            label={`Δ vs ${run.gapVsBestBaseline.name}`}
+            value={`${run.gapVsBestBaseline.delta_auprc >= 0 ? "+" : ""}${run.gapVsBestBaseline.delta_auprc.toFixed(4)}`}
+            hint={`baseline ${run.gapVsBestBaseline.baseline_auprc.toFixed(4)}`}
+          />
+        )}
+        {run.primaryModel && <Metric label="Model" value={run.primaryModel} hint="primary — by output tokens" />}
+        {run.totalCostUsd !== null && run.totalCostUsd !== undefined && (
+          <Metric label="Cost" value={`$${run.totalCostUsd.toFixed(2)}`} hint="total agent tokens" />
+        )}
+        {run.numTurns !== null && run.numTurns !== undefined && (
+          <Metric label="Turns" value={String(run.numTurns)} hint="agent tool calls" />
+        )}
+        {run.durationSeconds !== null && run.durationSeconds !== undefined && (
+          <Metric label="Wall clock" value={`${(run.durationSeconds / 60).toFixed(1)}m`} hint="agent runtime" />
         )}
       </section>
 

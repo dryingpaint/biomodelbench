@@ -87,7 +87,7 @@ stop and use an allowed source instead. Log everything you fetch to
 Modal A10G, 8 CPU, 32 GB RAM, 24 GB VRAM, Python 3.11 with
 `torch / transformers / peft / xgboost / lightgbm / scikit-learn /
 pandas / pyarrow / numpy / pyBigWig / pysam / biopython / requests`
-pre-installed. `pip install <x>` works. Wall clock ~24 hours.
+pre-installed. `pip install <x>` works. Wall clock ~10 hours.
 
 ## Deliverables
 

@@ -234,6 +234,44 @@ def _run_one(
             return ""
         return b[-n:].decode("utf-8", errors="replace")
 
+    # Parse the agent log's final `result` event for cost / turns / model.
+    meta: dict = {}
+    try:
+        import json as _json
+        for line in reversed(log_path.read_bytes().decode("utf-8", errors="replace").splitlines()):
+            if not line.strip():
+                continue
+            try:
+                evt = _json.loads(line)
+            except Exception:
+                continue
+            if evt.get("type") == "result":
+                usage_by_model = evt.get("modelUsage") or {}
+                primary_model = None
+                if usage_by_model:
+                    # Pick the model with the most output tokens as the primary
+                    primary_model = max(
+                        usage_by_model.items(),
+                        key=lambda kv: kv[1].get("outputTokens", 0),
+                    )[0]
+                meta = {
+                    "primary_model": primary_model,
+                    "models_used": sorted(usage_by_model.keys()),
+                    "total_cost_usd": evt.get("total_cost_usd"),
+                    "num_turns": evt.get("num_turns"),
+                    "duration_ms": evt.get("duration_ms"),
+                    "duration_api_ms": evt.get("duration_api_ms"),
+                    "terminal_reason": evt.get("terminal_reason"),
+                    "session_id": evt.get("session_id"),
+                }
+                break
+    except Exception:
+        pass
+    if meta:
+        (runs_dst / "run_meta.json").write_text(json.dumps(meta, indent=2))
+        (workdir / "run_meta.json").write_text(json.dumps(meta, indent=2))
+        volume.commit()
+
     return {
         "returncode": proc.returncode,
         "duration_seconds": round(duration, 2),
@@ -241,6 +279,7 @@ def _run_one(
         "stdout_tail": _tail(log_path),
         "stderr_tail": _tail(stderr_path),
         "runs_path": str(runs_dst),
+        "meta": meta,
     }
 
 

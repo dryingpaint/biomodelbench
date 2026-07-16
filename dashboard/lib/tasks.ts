@@ -27,6 +27,10 @@ export interface RunSummary {
   brier?: number | null;
   coverage?: number | null;
   gapVsBestBaseline?: { name: string; baseline_auprc: number; delta_auprc: number };
+  primaryModel?: string | null;
+  totalCostUsd?: number | null;
+  numTurns?: number | null;
+  durationSeconds?: number | null;
 }
 
 export interface TaskSummary {
@@ -41,6 +45,28 @@ export interface RunDetail extends RunSummary {
   grade?: Record<string, unknown>;
   method?: string;
   manifest?: Record<string, unknown>;
+  runMeta?: Record<string, unknown>;
+}
+
+export interface CrossTaskRunRow extends RunSummary {
+  taskId: string;
+  taskTitle: string;
+  headlineMetric?: string;
+}
+
+export function loadAllRuns(): CrossTaskRunRow[] {
+  const rows: CrossTaskRunRow[] = [];
+  for (const t of loadAllTasks()) {
+    for (const r of t.runs) {
+      rows.push({
+        ...r,
+        taskId: t.id,
+        taskTitle: t.meta.title ?? t.id,
+        headlineMetric: t.meta.headline_metric,
+      });
+    }
+  }
+  return rows.sort((a, b) => (b.auprc ?? -Infinity) - (a.auprc ?? -Infinity));
 }
 
 function readTextIfExists(p: string): string | undefined {
@@ -93,10 +119,12 @@ export function listRunIds(taskId: string): string[] {
 export function loadRunSummary(taskId: string, runId: string): RunSummary {
   const dir = path.join(TASKS_DIR, taskId, "runs", runId);
   const grade = readJsonIfExists<Record<string, unknown>>(path.join(dir, "grade.json"));
+  const meta = readJsonIfExists<Record<string, unknown>>(path.join(dir, "run_meta.json"));
   const hasMethod = fs.existsSync(path.join(dir, "method.md"));
   const gap = grade?.["gap_vs_best_baseline"] as
     | { name: string; baseline_auprc: number; delta_auprc: number }
     | undefined;
+  const durationMs = meta?.["duration_ms"] as number | null | undefined;
   return {
     runId,
     hasGrade: grade !== undefined,
@@ -106,6 +134,10 @@ export function loadRunSummary(taskId: string, runId: string): RunSummary {
     brier: (grade?.["brier"] as number | null | undefined) ?? null,
     coverage: (grade?.["coverage"] as number | null | undefined) ?? null,
     gapVsBestBaseline: gap,
+    primaryModel: (meta?.["primary_model"] as string | null | undefined) ?? null,
+    totalCostUsd: (meta?.["total_cost_usd"] as number | null | undefined) ?? null,
+    numTurns: (meta?.["num_turns"] as number | null | undefined) ?? null,
+    durationSeconds: typeof durationMs === "number" ? durationMs / 1000 : null,
   };
 }
 
@@ -119,6 +151,7 @@ export function loadRunDetail(taskId: string, runId: string): RunDetail {
     manifest: readJsonIfExists<Record<string, unknown>>(
       path.join(dir, "training_manifest.json"),
     ),
+    runMeta: readJsonIfExists<Record<string, unknown>>(path.join(dir, "run_meta.json")),
   };
 }
 
