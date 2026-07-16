@@ -165,7 +165,7 @@ def _download_impl(task: str, run_id: str) -> dict[str, bytes]:
 
 @app.function(
     gpu="A10G",
-    timeout=14400,
+    timeout=86400,  # Modal's max container lifetime, ~24h. Was 14400 (4h).
     memory=32768,
     cpu=8,
     secrets=[modal.Secret.from_name("anthropic-api")],
@@ -249,7 +249,7 @@ def launch(
     task: str,
     run_id: str = "",
     agent_command: str = AGENT_COMMAND_DEFAULT,
-    wall_clock_seconds: int = 14000,
+    wall_clock_seconds: int = 86000,
     skip_grade: bool = False,
     answer_filename: str = "answer.parquet",
 ):

@@ -70,7 +70,7 @@ already installed. `pip install <x>` in the container works.
 
 ## Compute + wall clock
 
-Modal A10G container: 8 CPU, 32 GB RAM, 24 GB VRAM, ~4 hours. Feature
+Modal A10G container: 8 CPU, 32 GB RAM, 24 GB VRAM, ~24 hours. Feature
 extraction over 80K variants can eat most of that if you run a big FM;
 budget accordingly.
 
