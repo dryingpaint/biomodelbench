@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+:root { color-scheme: light; }
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: rgb(250 250 249); /* stone-50 */
+  color: rgb(28 25 23); /* stone-900 */
+}

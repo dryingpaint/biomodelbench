@@ -46,14 +46,40 @@ from pathlib import Path
 
 import modal
 
-from harness.image import build_image
-
 APP_NAME = "biomodelbench"
 VOL_NAME = "biomodelbench-tasks"
 VOL_MOUNT = Path("/vol")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-app = modal.App(APP_NAME, image=build_image())
+# Shared container image. Kept inline so Modal doesn't have to ship the
+# harness package to workers — the image spec is one flat file.
+image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .apt_install(
+        "curl", "git", "nodejs", "npm", "ripgrep", "jq", "ca-certificates",
+        "tabix", "bcftools", "wget",
+    )
+    .pip_install(
+        "torch==2.3.0",
+        "transformers==4.41.2",
+        "scikit-learn>=1.4",
+        "pandas>=2",
+        "pyarrow>=14",
+        "numpy>=1.26",
+        "peft>=0.11",
+        "xgboost>=2.0",
+        "lightgbm>=4.3",
+        "tqdm",
+        "requests",
+        "matplotlib",
+        "pyBigWig>=0.3",
+        "pysam>=0.22",
+        "biopython>=1.83",
+    )
+    .run_commands("npm install -g @anthropic-ai/claude-code")
+)
+
+app = modal.App(APP_NAME, image=image)
 volume = modal.Volume.from_name(VOL_NAME, create_if_missing=True)
 
 AGENT_COMMAND_DEFAULT = (

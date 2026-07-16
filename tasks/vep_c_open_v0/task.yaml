@@ -1,0 +1,27 @@
+id: vep_c_open_v0
+title: VEP-C — open data discovery, no training labels shipped, blind eval
+modality: dna
+compute_tier: T1
+headline_metric: auprc
+description: |
+  The most open-ended version of the VEP-C task. Only the 11,400 TraitGym
+  complex_traits_matched_9 test variant IDs are shipped — no training
+  data, no features, no labels. The agent must find labeled training
+  variants from an allowlisted online source (Open Targets Genetics,
+  CausalDB, gnomAD constraint, etc.), apply anti-leak filtering against
+  the shipped test set, extract features, train a model, and submit.
+answer_file: answer.parquet
+data_files:
+  - bundle/test.parquet
+  - bundle/prompt.md
+wall_clock_hours: 4
+sources:
+  train: agent-chosen from allowlisted sources (OT Genetics, CausalDB, ...)
+  test: TraitGym complex_traits_matched_9 (Chen et al. 2024)
+anti_leak:
+  policy: |
+    Agent is responsible for dropping any training variant whose
+    (chrom, pos, ref, alt) appears in the shipped test.parquet. Prompt
+    explicitly blacklists TraitGym-derivative sources (huggingface.co/datasets/songlab/*,
+    Kanai UKBB fine-mapping, PolyFun outputs) which would leak labels.
+    Enforcement is prompt-level; audited via the agent's training_manifest.json.

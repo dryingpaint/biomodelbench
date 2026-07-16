@@ -8,15 +8,6 @@ for **training**, and 11,400 TraitGym `complex_traits_matched_9` variant
 positions for **test**. Feature extraction is on the agent. The test
 labels never enter the container.
 
-## Why this shape
-
-Every previous variant on this task either handed the agent pre-computed
-features (making it a modeling contest) or let it self-evaluate against
-labels it could see (letting it hill-climb). This version isolates the
-question we actually want to answer: given only variant IDs + labels and
-a container with internet + a GPU, can an agent build a competitive
-predictor?
-
 ## Numbers from the one shipped run
 
 See [`runs/ot-v2-20260715T210355/grade.json`](runs/ot-v2-20260715T210355/grade.json).
