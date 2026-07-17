@@ -1,0 +1,43 @@
+{
+  "traitgym": {
+    "n_total": 11400,
+    "n_scored": 11400,
+    "coverage": 1.0,
+    "positive_rate": 0.1,
+    "auprc": 0.23203851207729617,
+    "auroc": 0.623332863103177,
+    "brier": 0.10945837919811761
+  },
+  "clinvar": {
+    "n_total": 29990,
+    "n_scored": 29990,
+    "coverage": 1.0,
+    "positive_rate": 0.5001333777925975,
+    "auprc": 0.9808396183142997,
+    "auroc": 0.9812150285482086,
+    "brier": 0.12324638380612567
+  },
+  "generalization_gap": {
+    "delta_auprc_traitgym_minus_clinvar": -0.7488011062370035,
+    "note": "Raw AUPRC gap is confounded by base-rate differences (TraitGym base rate ~10%, ClinVar subsample ~50%). Compare each partition's AUPRC to its own base rate for a fair transfer read."
+  },
+  "reference_baselines": {
+    "traitgym": {
+      "phyloP-241m_Zoonomia": {
+        "auprc": 0.2352,
+        "auroc": 0.6146
+      },
+      "phastCons-43p_Zoonomia_primate": {
+        "auprc": 0.2245,
+        "auroc": 0.6168
+      },
+      "GPN-MSA_absLLR": {
+        "auprc": 0.2081,
+        "auroc": 0.6068
+      }
+    },
+    "clinvar": {
+      "note": "Reference AUPRCs on this exact ClinVar subsample are computed at build time and would live in hidden/build_stats.json. Field-standard predictors (AlphaMissense, REVEL, ClinPred) score >0.9 on ClinVar P/LP vs B/LB but are trained on ClinVar and are near-circular \u2014 treat them as an upper bound, not a bar."
+    }
+  }
+}
