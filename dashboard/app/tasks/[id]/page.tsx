@@ -21,146 +21,84 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   if (!task) notFound();
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
+    <main className="max-w-4xl mx-auto px-6 py-10 space-y-8">
       <header>
         <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
           <Link href="/tasks/" className="hover:text-stone-900">Tasks</Link> /{" "}
           <code className="font-mono">{task.id}</code>
         </div>
         <h1 className="text-2xl font-semibold text-stone-900">{task.meta.title ?? task.id}</h1>
-        {task.meta.description && (
-          <p className="text-sm text-stone-700 mt-3 whitespace-pre-line max-w-3xl">
-            {task.meta.description.trim()}
-          </p>
-        )}
-      </header>
-
-      <section>
-        <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
-          Metadata
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 text-sm">
-          {task.meta.modality && <Field label="Modality" value={task.meta.modality} />}
-          {task.meta.compute_tier && <Field label="Compute tier" value={task.meta.compute_tier} />}
-          {task.meta.headline_metric && <Field label="Headline metric" value={task.meta.headline_metric} />}
-          {task.meta.wall_clock_hours !== undefined && (
-            <Field label="Wall clock" value={`~${task.meta.wall_clock_hours}h`} />
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-stone-600">
+          {task.meta.compute_tier && (
+            <div>
+              <span className="uppercase tracking-wider font-semibold text-stone-500 mr-1">
+                Tier
+              </span>
+              <span className="font-mono text-stone-900">{task.meta.compute_tier}</span>
+            </div>
           )}
-          {task.meta.sources?.train && <Field label="Train source" value={task.meta.sources.train} />}
-          {task.meta.sources?.test && <Field label="Test source" value={task.meta.sources.test} />}
+          {task.meta.headline_metric && (
+            <div>
+              <span className="uppercase tracking-wider font-semibold text-stone-500 mr-1">
+                Scoring
+              </span>
+              <span className="font-mono text-stone-900">{task.meta.headline_metric}</span>
+              <span className="text-stone-500">
+                {" "}(deterministic — see <code className="font-mono">grade.py</code>)
+              </span>
+            </div>
+          )}
+          {task.meta.wall_clock_hours !== undefined && (
+            <div>
+              <span className="uppercase tracking-wider font-semibold text-stone-500 mr-1">
+                Wall clock
+              </span>
+              <span className="font-mono text-stone-900">~{task.meta.wall_clock_hours}h</span>
+            </div>
+          )}
         </div>
-        {task.meta.anti_leak?.policy && (
-          <div className="mt-3 text-sm text-stone-700">
-            <span className="text-xs uppercase tracking-wider font-semibold text-stone-500 mr-2">
-              Anti-leak
-            </span>
-            <span className="whitespace-pre-line">{task.meta.anti_leak.policy}</span>
-          </div>
-        )}
-      </section>
-
-      <section>
-        <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
-          Runs ({task.runs.length})
-        </div>
-        <div className="border border-stone-200 bg-white rounded overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs uppercase tracking-wider font-semibold text-stone-500 border-b border-stone-200">
-              <tr>
-                <th className="text-left px-4 py-2">Run ID</th>
-                <th className="text-left px-4 py-2">Model</th>
-                <th className="text-right px-4 py-2">AUPRC</th>
-                <th className="text-right px-4 py-2">AUROC</th>
-                <th className="text-right px-4 py-2">Coverage</th>
-                <th className="text-right px-4 py-2">Δ baseline</th>
-                <th className="text-right px-4 py-2">Cost</th>
-                <th className="text-right px-4 py-2">Turns</th>
-                <th className="text-right px-4 py-2">Duration</th>
-              </tr>
-            </thead>
-            <tbody>
-              {task.runs.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="px-4 py-3 text-sm text-stone-500 text-center">
-                    No runs recorded yet.
-                  </td>
-                </tr>
-              )}
-              {task.runs.map((r) => (
-                <tr key={r.runId} className="border-b border-stone-100 last:border-b-0 hover:bg-stone-50">
-                  <td className="px-4 py-2">
-                    <Link
-                      href={`/tasks/${task.id}/runs/${r.runId}/`}
-                      className="font-mono text-stone-900 hover:underline"
-                    >
-                      {r.runId}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs text-stone-800">
-                    {r.primaryModel ?? "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.auprc !== null && r.auprc !== undefined ? r.auprc.toFixed(4) : "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.auroc !== null && r.auroc !== undefined ? r.auroc.toFixed(4) : "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.coverage !== null && r.coverage !== undefined ? r.coverage.toFixed(2) : "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.gapVsBestBaseline
-                      ? `${r.gapVsBestBaseline.delta_auprc >= 0 ? "+" : ""}${r.gapVsBestBaseline.delta_auprc.toFixed(4)}`
-                      : "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.totalCostUsd !== null && r.totalCostUsd !== undefined
-                      ? `$${r.totalCostUsd.toFixed(2)}`
-                      : "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.numTurns ?? "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.durationSeconds ? `${(r.durationSeconds / 60).toFixed(1)}m` : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      </header>
 
       {task.prompt && (
         <section>
           <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
-            Prompt shipped to the agent (<code className="font-mono">prompt.md</code>)
+            Prompt (<code className="font-mono">prompt.md</code>, verbatim)
           </div>
-          <div className="border border-stone-200 bg-white rounded p-5">
+          <div className="border border-stone-200 bg-white rounded p-6">
             <Markdown>{task.prompt}</Markdown>
           </div>
         </section>
       )}
 
-      {task.readme && (
+      {task.runs.length > 0 && (
         <section>
           <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
-            Task README
+            Runs
           </div>
-          <div className="border border-stone-200 bg-white rounded p-5">
-            <Markdown>{task.readme}</Markdown>
-          </div>
+          <ul className="text-sm space-y-1">
+            {task.runs.map((r) => (
+              <li key={r.runId}>
+                <Link
+                  href={`/tasks/${task.id}/runs/${r.runId}/`}
+                  className="text-blue-700 hover:underline font-mono text-xs"
+                >
+                  {r.runId}
+                </Link>
+                {r.primaryModel && (
+                  <span className="text-stone-500 ml-2 font-mono text-xs">
+                    · {r.primaryModel}
+                  </span>
+                )}
+                {r.auprc !== null && r.auprc !== undefined && (
+                  <span className="text-stone-800 ml-2 font-mono tabular-nums text-xs">
+                    · AUPRC {r.auprc.toFixed(4)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </main>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border border-stone-200 bg-white rounded px-3 py-2">
-      <div className="text-xs uppercase tracking-wider font-semibold text-stone-500">{label}</div>
-      <div className="text-sm text-stone-900 mt-0.5 break-words">{value}</div>
-    </div>
   );
 }
