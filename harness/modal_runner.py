@@ -162,6 +162,8 @@ def _download_impl(task: str, run_id: str) -> dict[str, bytes]:
 # Agent run
 # ---------------------------------------------------------------------------
 
+SNAPSHOT_INTERVAL_SECONDS = 300  # commit workdir → volume every 5 min
+
 
 @app.function(
     gpu="A10G",
@@ -178,6 +180,9 @@ def _run_one(
     agent_command: str,
     wall_clock_seconds: int,
 ) -> dict:
+    import signal
+    import threading
+
     src = VOL_MOUNT / "tasks" / task
     if not src.exists():
         return {"error": f"task not found on volume: {src}", "returncode": 127}
@@ -195,7 +200,70 @@ def _run_one(
 
     log_path = workdir / "agent_log.jsonl"
     stderr_path = workdir / "agent_stderr.txt"
+    runs_dst = VOL_MOUNT / "runs" / task / run_id
+    runs_dst.mkdir(parents=True, exist_ok=True)
+
+    def _snapshot_to_volume() -> int:
+        """Copy workdir → runs_dst (skipping bundle inputs), commit. Return file count.
+
+        We deliberately skip files that were part of the input bundle (train.parquet,
+        test.parquet, prompt.md, etc.) so we don't recopy them into the runs dir.
+        """
+        bundle_relpaths = {str(p.relative_to(src)) for p in src.rglob("*") if p.is_file()}
+        n = 0
+        for path in sorted(workdir.rglob("*")):
+            if not path.is_file():
+                continue
+            rel = str(path.relative_to(workdir))
+            if rel in bundle_relpaths:
+                continue
+            target = runs_dst / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                data = path.read_bytes()
+            except OSError:
+                continue
+            # Skip write if unchanged (avoids churn on the volume).
+            if target.exists() and target.stat().st_size == len(data):
+                try:
+                    if target.read_bytes() == data:
+                        n += 1
+                        continue
+                except OSError:
+                    pass
+            target.write_bytes(data)
+            n += 1
+        volume.commit()
+        return n
+
+    stop_snapshot = threading.Event()
+
+    def _snapshot_loop():
+        while not stop_snapshot.wait(SNAPSHOT_INTERVAL_SECONDS):
+            try:
+                n = _snapshot_to_volume()
+                print(f"[snapshot] {n} files committed to volume at t={time.time() - t0:.0f}s", flush=True)
+            except Exception as e:
+                print(f"[snapshot] failed: {e}", flush=True)
+
+    # Emergency commit on SIGTERM (Modal sends this on cancellation).
+    def _handle_sigterm(signum, frame):
+        print(f"[signal] received SIGTERM, snapshotting before shutdown", flush=True)
+        try:
+            _snapshot_to_volume()
+        except Exception as e:
+            print(f"[signal] snapshot failed: {e}", flush=True)
+
+    try:
+        signal.signal(signal.SIGTERM, _handle_sigterm)
+    except (ValueError, OSError):
+        # SIGTERM handler only settable on the main thread. If we're not,
+        # skip — the periodic snapshot loop is still active.
+        pass
+
     t0 = time.time()
+    snapshot_thread = threading.Thread(target=_snapshot_loop, daemon=True)
+    snapshot_thread.start()
     with open(log_path, "wb") as log_f, open(stderr_path, "wb") as err_f:
         proc = subprocess.Popen(
             agent_command, shell=True, cwd=str(workdir), stdout=log_f, stderr=err_f,
@@ -209,23 +277,18 @@ def _run_one(
             except subprocess.TimeoutExpired:
                 proc.kill()
     duration = time.time() - t0
+    stop_snapshot.set()
+    snapshot_thread.join(timeout=10)
 
-    runs_dst = VOL_MOUNT / "runs" / task / run_id
-    runs_dst.mkdir(parents=True, exist_ok=True)
+    # Final full snapshot at end. Uses the same helper.
+    artifacts_count = _snapshot_to_volume()
     artifacts: dict[str, bytes] = {}
-    for path in sorted(workdir.rglob("*")):
-        if not path.is_file():
-            continue
-        rel = str(path.relative_to(workdir))
-        try:
-            data = path.read_bytes()
-        except OSError:
-            continue
-        artifacts[rel] = data
-        target = runs_dst / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
-    volume.commit()
+    for path in sorted(runs_dst.rglob("*")):
+        if path.is_file():
+            try:
+                artifacts[str(path.relative_to(runs_dst))] = path.read_bytes()
+            except OSError:
+                continue
 
     def _tail(p: Path, n: int = 4000) -> str:
         try:
@@ -283,49 +346,11 @@ def _run_one(
     }
 
 
-@app.local_entrypoint()
-def launch(
-    task: str,
-    run_id: str = "",
-    agent_command: str = AGENT_COMMAND_DEFAULT,
-    wall_clock_seconds: int = 35600,
-    skip_grade: bool = False,
-    answer_filename: str = "answer.parquet",
-):
-    """Run one agent attempt, sync artifacts, invoke the task's grade.py."""
-    task_dir = _task_dir(task)
-    _task_bundle(task)  # sanity check: bundle exists
-
-    if not run_id:
-        run_id = time.strftime("%Y%m%dT%H%M%S")
-    print(f"[{task}] launching run_id={run_id} (wall_clock ≤ {wall_clock_seconds}s)")
-    result = _run_one.remote(task, run_id, agent_command, wall_clock_seconds)
-    print(f"[{task}] rc={result.get('returncode')} duration={result.get('duration_seconds')}s artifacts={result.get('n_artifacts')}")
-
-    files = _download_impl.remote(task, run_id)
-    out_dir = task_dir / "runs" / run_id
-    out_dir.mkdir(parents=True, exist_ok=True)
-    for rel, blob in files.items():
-        p = out_dir / rel
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_bytes(blob)
-    (out_dir / "run_summary.json").write_text(json.dumps({
-        "task": task,
-        "run_id": run_id,
-        "returncode": result.get("returncode"),
-        "duration_seconds": result.get("duration_seconds"),
-        "stdout_tail": result.get("stdout_tail"),
-        "stderr_tail": result.get("stderr_tail"),
-        "n_artifacts": len(files),
-    }, indent=2))
-    print(f"[{task}] wrote {len(files)} artifacts to {out_dir}")
-
+def _run_grade(task: str, out_dir: Path, task_dir: Path, answer_filename: str) -> None:
     grade_script = task_dir / "grade.py"
     answer = out_dir / answer_filename
-    if skip_grade:
-        return
     if not answer.exists():
-        print(f"[{task}] no {answer_filename} produced; skipping grade")
+        print(f"[{task}] no {answer_filename} in {out_dir}; skipping grade")
         return
     if not grade_script.exists():
         print(f"[{task}] no grade.py at {grade_script}; skipping grade")
@@ -341,3 +366,95 @@ def launch(
         print(grade_out.read_text())
     except subprocess.CalledProcessError as exc:
         print(f"[{task}] grader failed: {exc}")
+
+
+def _download_and_write(task: str, run_id: str, task_dir: Path) -> Path:
+    """Pull run artifacts from the volume into the local runs/<run_id>/ dir."""
+    files = _download_impl.remote(task, run_id)
+    out_dir = task_dir / "runs" / run_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for rel, blob in files.items():
+        p = out_dir / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(blob)
+    print(f"[{task}] wrote {len(files)} artifacts to {out_dir}")
+    return out_dir
+
+
+@app.local_entrypoint()
+def launch(
+    task: str,
+    run_id: str = "",
+    agent_command: str = AGENT_COMMAND_DEFAULT,
+    wall_clock_seconds: int = 35600,
+    skip_grade: bool = False,
+    answer_filename: str = "answer.parquet",
+):
+    """Run one agent attempt, sync artifacts, invoke the task's grade.py.
+
+    Resilient to Modal client-side ConnectionError: even if the .remote()
+    poll drops, the run keeps going on Modal thanks to periodic mid-run
+    snapshots inside _run_one. Once the run finishes (or is cancelled), the
+    `retrieve` entrypoint can pull whatever's on the volume.
+    """
+    task_dir = _task_dir(task)
+    _task_bundle(task)  # sanity check: bundle exists
+
+    if not run_id:
+        run_id = time.strftime("%Y%m%dT%H%M%S")
+    print(f"[{task}] launching run_id={run_id} (wall_clock ≤ {wall_clock_seconds}s)")
+
+    result: dict = {}
+    try:
+        result = _run_one.remote(task, run_id, agent_command, wall_clock_seconds)
+        print(
+            f"[{task}] rc={result.get('returncode')} "
+            f"duration={result.get('duration_seconds')}s artifacts={result.get('n_artifacts')}"
+        )
+    except Exception as exc:
+        # Modal client can raise ConnectionError, InternalFailure, or
+        # RemoteError on cancellation. The remote run may or may not have
+        # completed; either way, try to salvage whatever's on the volume.
+        print(f"[{task}] .remote() raised {type(exc).__name__}: {exc}")
+        print(f"[{task}] falling through to volume retrieval for run_id={run_id}")
+
+    try:
+        out_dir = _download_and_write(task, run_id, task_dir)
+    except Exception as exc:
+        print(f"[{task}] volume retrieval failed: {exc}")
+        print(f"[{task}] you can retry with:")
+        print(f"  uv run modal run harness/modal_runner.py::retrieve --task {task} --run-id {run_id}")
+        return
+
+    (out_dir / "run_summary.json").write_text(json.dumps({
+        "task": task,
+        "run_id": run_id,
+        "returncode": result.get("returncode"),
+        "duration_seconds": result.get("duration_seconds"),
+        "stdout_tail": result.get("stdout_tail"),
+        "stderr_tail": result.get("stderr_tail"),
+        "n_artifacts": result.get("n_artifacts"),
+    }, indent=2))
+
+    if not skip_grade:
+        _run_grade(task, out_dir, task_dir, answer_filename)
+
+
+@app.local_entrypoint()
+def retrieve(
+    task: str,
+    run_id: str,
+    skip_grade: bool = False,
+    answer_filename: str = "answer.parquet",
+):
+    """Pull a specific run's artifacts from the volume and optionally re-grade.
+
+    Use this if launch()'s in-band retrieval failed but the run itself may
+    have completed (or snapshotted mid-run) — the periodic snapshot loop in
+    _run_one commits every 5 minutes, so a killed run usually has salvageable
+    artifacts on the volume.
+    """
+    task_dir = _task_dir(task)
+    out_dir = _download_and_write(task, run_id, task_dir)
+    if not skip_grade:
+        _run_grade(task, out_dir, task_dir, answer_filename)
