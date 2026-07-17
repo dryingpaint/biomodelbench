@@ -1,9 +1,0 @@
-{
-  "primary_model": "claude-opus-4-8[1m]",
-  "models_used": ["claude-haiku-4-5-20251001", "claude-opus-4-8[1m]"],
-  "total_cost_usd": 8.077265749999999,
-  "num_turns": 146,
-  "duration_ms": 7656810,
-  "terminal_reason": "completed",
-  "note": "Recovered from run_summary.json.stdout_tail; the local Modal client hit InternalFailure late in the run and the run_summary artifact wasn't downloaded, but the volume-side agent_log.jsonl was intact."
-}
