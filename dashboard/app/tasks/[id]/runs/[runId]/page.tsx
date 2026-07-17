@@ -24,6 +24,56 @@ export async function generateMetadata({
   return { title: `${id}/${runId} · BioModelBench` };
 }
 
+interface MetricBlock {
+  auprc?: number | null;
+  auroc?: number | null;
+  brier?: number | null;
+  coverage?: number | null;
+  positive_rate?: number | null;
+}
+
+interface RefBaseline {
+  auprc?: number;
+  auroc?: number;
+  note?: string;
+}
+
+function isMetricBlock(v: unknown): v is MetricBlock {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  const o = v as Record<string, unknown>;
+  return "auprc" in o || "auroc" in o;
+}
+
+// Detect nested per-partition graders (e.g., traitgym / clinvar). Returns
+// the list of partition names with their metric slices, or [] if the grade
+// is flat.
+function collectPartitions(grade: Record<string, unknown> | undefined): {
+  name: string;
+  metrics: MetricBlock;
+  refs?: Record<string, RefBaseline>;
+}[] {
+  if (!grade) return [];
+  const NOT_PARTITION = new Set([
+    "auprc", "auroc", "brier", "coverage", "positive_rate",
+    "test_variants_total", "test_variants_scored", "n_total", "n_scored",
+    "per_chrom", "per_fold", "baselines", "reference_baselines",
+    "gap_vs_best_baseline", "gap_vs_best_supervised", "gap_vs_best_zero_shot",
+    "generalization_gap",
+  ]);
+  const out: { name: string; metrics: MetricBlock; refs?: Record<string, RefBaseline> }[] = [];
+  const refs = grade["reference_baselines"] as Record<string, unknown> | undefined;
+  for (const [k, v] of Object.entries(grade)) {
+    if (NOT_PARTITION.has(k)) continue;
+    if (isMetricBlock(v)) {
+      const partitionRef = refs && typeof refs[k] === "object" && !Array.isArray(refs[k])
+        ? (refs[k] as Record<string, RefBaseline>)
+        : undefined;
+      out.push({ name: k, metrics: v, refs: partitionRef });
+    }
+  }
+  return out;
+}
+
 export default async function RunPage({
   params,
 }: {
@@ -34,9 +84,11 @@ export default async function RunPage({
   if (!task) notFound();
   const run = loadRunDetail(id, runId);
 
-  const referenceBaselines =
-    (run.grade?.["reference_baselines"] as Record<string, { auprc: number; auroc: number }>) ??
-    undefined;
+  const partitions = collectPartitions(run.grade);
+  const isMulti = partitions.length > 0;
+  const flatRefs = !isMulti
+    ? (run.grade?.["reference_baselines"] as Record<string, RefBaseline> | undefined)
+    : undefined;
   const perChrom = (run.grade?.["per_chrom"] as Array<Record<string, unknown>>) ?? [];
 
   return (
@@ -52,18 +104,8 @@ export default async function RunPage({
         <h1 className="text-2xl font-semibold text-stone-900">Run {run.runId}</h1>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-3">
-        <Metric label="AUPRC" value={fmt(run.auprc)} hint="headline" />
-        <Metric label="AUROC" value={fmt(run.auroc)} hint="" />
-        <Metric label="Brier" value={fmt(run.brier)} hint="lower is better" />
-        <Metric label="Coverage" value={fmt(run.coverage)} hint="frac of rows scored" />
-        {run.gapVsBestBaseline && (
-          <Metric
-            label={`Δ vs ${run.gapVsBestBaseline.name}`}
-            value={`${run.gapVsBestBaseline.delta_auprc >= 0 ? "+" : ""}${run.gapVsBestBaseline.delta_auprc.toFixed(4)}`}
-            hint={`baseline ${run.gapVsBestBaseline.baseline_auprc.toFixed(4)}`}
-          />
-        )}
+      {/* Meta cards (model / cost / turns / wall clock) — same for flat + multi */}
+      <section className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
         {run.primaryModel && <Metric label="Model" value={run.primaryModel} hint="primary — by output tokens" />}
         {run.totalCostUsd !== null && run.totalCostUsd !== undefined && (
           <Metric label="Cost" value={`$${run.totalCostUsd.toFixed(2)}`} hint="total agent tokens" />
@@ -76,39 +118,57 @@ export default async function RunPage({
         )}
       </section>
 
-      {referenceBaselines && Object.keys(referenceBaselines).length > 0 && (
+      {/* Metric cards + reference-baseline table PER PARTITION for multi-eval */}
+      {isMulti &&
+        partitions.map((p) => (
+          <section key={p.name} className="space-y-4">
+            <div className="text-xs uppercase tracking-wider font-semibold text-stone-500">
+              Partition: <code className="font-mono text-stone-900">{p.name}</code>
+              {p.metrics.positive_rate !== undefined && p.metrics.positive_rate !== null && (
+                <span className="ml-2 text-stone-500">
+                  · base rate {p.metrics.positive_rate.toFixed(2)}
+                </span>
+              )}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-4">
+              <Metric label="AUPRC" value={fmt(p.metrics.auprc)} hint="headline" />
+              <Metric label="AUROC" value={fmt(p.metrics.auroc)} hint="" />
+              <Metric label="Brier" value={fmt(p.metrics.brier)} hint="lower is better" />
+              <Metric label="Coverage" value={fmt(p.metrics.coverage)} hint="frac of rows scored" />
+            </div>
+            {p.refs && Object.keys(p.refs).length > 0 && (
+              <RefTable
+                agentAuprc={p.metrics.auprc}
+                agentAuroc={p.metrics.auroc}
+                refs={p.refs}
+              />
+            )}
+          </section>
+        ))}
+
+      {/* Flat-grade metric cards + reference-baseline table */}
+      {!isMulti && (
+        <section className="grid gap-3 sm:grid-cols-4">
+          <Metric label="AUPRC" value={fmt(run.auprc)} hint="headline" />
+          <Metric label="AUROC" value={fmt(run.auroc)} hint="" />
+          <Metric label="Brier" value={fmt(run.brier)} hint="lower is better" />
+          <Metric label="Coverage" value={fmt(run.coverage)} hint="frac of rows scored" />
+          {run.gapVsBestBaseline && (
+            <Metric
+              label={`Δ vs ${run.gapVsBestBaseline.name}`}
+              value={`${run.gapVsBestBaseline.delta_auprc >= 0 ? "+" : ""}${run.gapVsBestBaseline.delta_auprc.toFixed(4)}`}
+              hint={`baseline ${run.gapVsBestBaseline.baseline_auprc.toFixed(4)}`}
+            />
+          )}
+        </section>
+      )}
+
+      {!isMulti && flatRefs && Object.keys(flatRefs).length > 0 && (
         <section>
           <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
             Reference baselines
           </div>
-          <div className="border border-stone-200 bg-white rounded overflow-hidden">
-            <div className="grid grid-cols-[2fr_1fr_1fr] gap-4 px-4 py-2 text-xs uppercase tracking-wider font-semibold text-stone-500 border-b border-stone-200">
-              <div>Method</div>
-              <div className="text-right">AUPRC</div>
-              <div className="text-right">AUROC</div>
-            </div>
-            <div className="grid grid-cols-[2fr_1fr_1fr] gap-4 px-4 py-2 text-sm border-b border-stone-100 bg-amber-50 font-semibold">
-              <div className="font-mono text-stone-900">Agent (this run)</div>
-              <div className="text-right font-mono tabular-nums">{fmt(run.auprc)}</div>
-              <div className="text-right font-mono tabular-nums">{fmt(run.auroc)}</div>
-            </div>
-            {Object.entries(referenceBaselines)
-              .sort((a, b) => b[1].auprc - a[1].auprc)
-              .map(([name, r]) => (
-                <div
-                  key={name}
-                  className="grid grid-cols-[2fr_1fr_1fr] gap-4 px-4 py-2 text-sm border-b border-stone-100 last:border-b-0"
-                >
-                  <div className="font-mono text-stone-800">{name}</div>
-                  <div className="text-right font-mono tabular-nums text-stone-800">
-                    {r.auprc.toFixed(4)}
-                  </div>
-                  <div className="text-right font-mono tabular-nums text-stone-800">
-                    {r.auroc.toFixed(4)}
-                  </div>
-                </div>
-              ))}
-          </div>
+          <RefTable agentAuprc={run.auprc} agentAuroc={run.auroc} refs={flatRefs} />
         </section>
       )}
 
@@ -131,12 +191,8 @@ export default async function RunPage({
                 className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-2 text-sm border-b border-stone-100 last:border-b-0"
               >
                 <div className="font-mono text-stone-800">{String(r.chrom)}</div>
-                <div className="text-right font-mono tabular-nums text-stone-800">
-                  {String(r.n)}
-                </div>
-                <div className="text-right font-mono tabular-nums text-stone-800">
-                  {String(r.positives)}
-                </div>
+                <div className="text-right font-mono tabular-nums text-stone-800">{String(r.n)}</div>
+                <div className="text-right font-mono tabular-nums text-stone-800">{String(r.positives)}</div>
                 <div className="text-right font-mono tabular-nums text-stone-800">
                   {typeof r.auprc === "number" ? r.auprc.toFixed(4) : "—"}
                 </div>
@@ -198,6 +254,60 @@ function Metric({ label, value, hint }: { label: string; value: string; hint: st
         {value}
       </div>
       <div className="text-xs text-stone-500 mt-0.5">{hint}</div>
+    </div>
+  );
+}
+
+function RefTable({
+  agentAuprc,
+  agentAuroc,
+  refs,
+}: {
+  agentAuprc?: number | null;
+  agentAuroc?: number | null;
+  refs: Record<string, RefBaseline>;
+}) {
+  const rows = Object.entries(refs)
+    .filter(([, r]) => typeof r === "object" && r !== null && ("auprc" in r || "auroc" in r))
+    .filter(([, r]) => typeof (r as RefBaseline).auprc === "number")
+    .sort(
+      (a, b) =>
+        ((b[1] as RefBaseline).auprc ?? 0) - ((a[1] as RefBaseline).auprc ?? 0),
+    );
+  return (
+    <div className="border border-stone-200 bg-white rounded overflow-hidden">
+      <div className="grid grid-cols-[2fr_1fr_1fr] gap-4 px-4 py-2 text-xs uppercase tracking-wider font-semibold text-stone-500 border-b border-stone-200">
+        <div>Method</div>
+        <div className="text-right">AUPRC</div>
+        <div className="text-right">AUROC</div>
+      </div>
+      <div className="grid grid-cols-[2fr_1fr_1fr] gap-4 px-4 py-2 text-sm border-b border-stone-100 bg-amber-50 font-semibold">
+        <div className="font-mono text-stone-900">Agent (this run)</div>
+        <div className="text-right font-mono tabular-nums">{fmt(agentAuprc)}</div>
+        <div className="text-right font-mono tabular-nums">{fmt(agentAuroc)}</div>
+      </div>
+      {rows.map(([name, r]) => {
+        const rb = r as RefBaseline;
+        return (
+          <div
+            key={name}
+            className="grid grid-cols-[2fr_1fr_1fr] gap-4 px-4 py-2 text-sm border-b border-stone-100 last:border-b-0"
+          >
+            <div className="font-mono text-stone-800">{name}</div>
+            <div className="text-right font-mono tabular-nums text-stone-800">
+              {typeof rb.auprc === "number" ? rb.auprc.toFixed(4) : "—"}
+            </div>
+            <div className="text-right font-mono tabular-nums text-stone-800">
+              {typeof rb.auroc === "number" ? rb.auroc.toFixed(4) : "—"}
+            </div>
+          </div>
+        );
+      })}
+      {rows.length === 0 && (
+        <div className="px-4 py-3 text-xs text-stone-500">
+          No numeric reference baselines recorded for this partition.
+        </div>
+      )}
     </div>
   );
 }
