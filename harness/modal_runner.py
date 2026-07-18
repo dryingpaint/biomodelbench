@@ -168,7 +168,7 @@ SNAPSHOT_INTERVAL_SECONDS = 300  # commit workdir → volume every 5 min
 @app.function(
     gpu="A10G",
     timeout=36000,  # 10h container lifetime.
-    memory=32768,
+    memory=98304,  # 96 GB — headroom for loading multi-GB bigWigs + FMs in-process.
     cpu=8,
     secrets=[modal.Secret.from_name("anthropic-api")],
     volumes={str(VOL_MOUNT): volume},
@@ -264,18 +264,113 @@ def _run_one(
     t0 = time.time()
     snapshot_thread = threading.Thread(target=_snapshot_loop, daemon=True)
     snapshot_thread.start()
-    with open(log_path, "wb") as log_f, open(stderr_path, "wb") as err_f:
-        proc = subprocess.Popen(
-            agent_command, shell=True, cwd=str(workdir), stdout=log_f, stderr=err_f,
-        )
-        try:
-            proc.wait(timeout=wall_clock_seconds)
-        except subprocess.TimeoutExpired:
-            proc.terminate()
+
+    # We loop claude sessions until the wall clock is close to expiring. If
+    # the agent exits early, we relaunch with a continuation prompt urging it
+    # to keep iterating. Quick consecutive exits (< 2 min) signal the agent
+    # genuinely has nothing more to do — we stop after a few of those.
+    MIN_REMAINING_FOR_RELAUNCH = 900  # 15 min buffer for final artifact commit / grade
+    QUICK_EXIT_THRESHOLD = 120  # <2 min = "nothing left to do"
+    MAX_CONSECUTIVE_QUICK_EXITS = 3
+
+    session_num = 0
+    consecutive_quick_exits = 0
+    exit_reason = "completed"
+    last_returncode = 0
+    while True:
+        elapsed = time.time() - t0
+        remaining = wall_clock_seconds - elapsed
+        if remaining < MIN_REMAINING_FOR_RELAUNCH:
+            print(f"[loop] {remaining:.0f}s remaining < {MIN_REMAINING_FOR_RELAUNCH}s buffer; stopping loop", flush=True)
+            exit_reason = "wall_clock"
+            break
+        if consecutive_quick_exits >= MAX_CONSECUTIVE_QUICK_EXITS:
+            print(f"[loop] {consecutive_quick_exits} consecutive quick exits; agent appears done", flush=True)
+            exit_reason = "agent_done"
+            break
+
+        session_num += 1
+        if session_num == 1:
+            cmd = agent_command
+        else:
+            answer_present = (workdir / "answer.parquet").exists()
+            method_present = (workdir / "method.md").exists()
+            remain_min = int(remaining / 60)
+            continuation = (
+                f"Continue improving your BioModelBench submission. This is a "
+                f"long-horizon run: you have approximately {remain_min} minutes "
+                f"remaining out of a {int(wall_clock_seconds/60)} minute total "
+                f"budget. Do NOT stop early.\n\n"
+                f"Current state of /task:\n"
+                f"- answer.parquet: {'present' if answer_present else 'MISSING — first priority'}\n"
+                f"- method.md: {'present' if method_present else 'missing'}\n"
+                f"- Any scripts / logs / features files you wrote in the previous "
+                f"session are still on disk. Read method.md and training_manifest.json "
+                f"to understand what you already did.\n\n"
+                f"Directives:\n"
+                f"1. If answer.parquet is missing, produce it before anything else.\n"
+                f"2. If it exists, keep iterating: try feature families you haven't "
+                f"used yet, train a complementary model type (e.g. add LightGBM if you "
+                f"only have logistic regression, or vice versa), ensemble with rank "
+                f"averaging, or diagnose which variants are most uncertain and target "
+                f"them. Overwrite answer.parquet, method.md, and training_manifest.json "
+                f"as you improve.\n"
+                f"3. Do not stop until you have genuinely exhausted useful directions. "
+                f"Use the full remaining time.\n"
+                f"4. The blacklist and anti-leak rules from the original prompt still "
+                f"apply. Re-read /task/prompt.md if unsure."
+            )
+            # Pass the continuation through a file to avoid shell-quoting hazards.
+            cont_path = workdir / f".continuation_{session_num}.md"
+            cont_path.write_text(continuation)
+            cmd = (
+                'claude --dangerously-skip-permissions --print '
+                '--output-format stream-json --verbose '
+                f'"$(cat {cont_path.name})"'
+            )
+            print(f"[loop] session {session_num} — continuation prompt written to {cont_path.name}", flush=True)
+
+        # Cap this session's wait so we can still relaunch within remaining budget.
+        session_wait = max(60, min(int(remaining), wall_clock_seconds))
+        s0 = time.time()
+        print(f"[loop] session {session_num} launching (remaining={remaining:.0f}s)", flush=True)
+        with open(log_path, "ab") as log_f, open(stderr_path, "ab") as err_f:
+            proc = subprocess.Popen(
+                cmd, shell=True, cwd=str(workdir), stdout=log_f, stderr=err_f,
+            )
             try:
-                proc.wait(timeout=30)
+                proc.wait(timeout=session_wait)
             except subprocess.TimeoutExpired:
-                proc.kill()
+                proc.terminate()
+                try:
+                    proc.wait(timeout=30)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+        session_dur = time.time() - s0
+        last_returncode = proc.returncode
+        print(f"[loop] session {session_num} exited rc={last_returncode} in {session_dur:.0f}s", flush=True)
+
+        if session_dur < QUICK_EXIT_THRESHOLD:
+            consecutive_quick_exits += 1
+            print(f"[loop] quick exit #{consecutive_quick_exits}/{MAX_CONSECUTIVE_QUICK_EXITS}", flush=True)
+        else:
+            consecutive_quick_exits = 0
+
+        # Give any background jobs the agent kicked off (e.g., long-running
+        # feature-extraction scripts) a chance to finish before we relaunch.
+        # If answer.parquet has grown or been created in the last 60s, wait
+        # a bit more before starting a new session.
+        answer_p = workdir / "answer.parquet"
+        wait_grace = 0
+        while wait_grace < 300:
+            if answer_p.exists():
+                age = time.time() - answer_p.stat().st_mtime
+                if age < 60:
+                    time.sleep(30)
+                    wait_grace += 30
+                    continue
+            break
+
     duration = time.time() - t0
     stop_snapshot.set()
     snapshot_thread.join(timeout=10)
@@ -336,8 +431,10 @@ def _run_one(
         volume.commit()
 
     return {
-        "returncode": proc.returncode,
+        "returncode": last_returncode,
         "duration_seconds": round(duration, 2),
+        "sessions": session_num,
+        "exit_reason": exit_reason,
         "n_artifacts": len(artifacts),
         "stdout_tail": _tail(log_path),
         "stderr_tail": _tail(stderr_path),

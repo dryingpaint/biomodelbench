@@ -29,10 +29,20 @@ Columns: `chrom` (string, 1-22), `pos` (int, hg38 1-based), `ref`, `alt`.
 ## Compute + resources
 
 You are in a Modal container with a public-internet allowlist, an A10G
-GPU (24 GB VRAM), 8 CPUs, 32 GB RAM. Python 3.11 with
+GPU (24 GB VRAM), 8 CPUs, 96 GB RAM. Python 3.11 with
 `torch / transformers / peft / xgboost / lightgbm / scikit-learn /
 pandas / pyarrow / numpy / pyBigWig / pysam / biopython / requests`
 pre-installed. `pip install <x>` works. Wall clock ~10 hours.
+
+**Use the full time budget.** This is a long-horizon run. Even after you
+produce a valid `answer.parquet`, keep iterating — try feature families
+you haven't used, train complementary model types (ensemble a linear
+head with a gradient-boosted tree, for example), rank-average multiple
+submissions, or diagnose which variants are most uncertain and target
+them. Overwrite `answer.parquet`, `method.md`, and `training_manifest.json`
+as you improve. The runner will relaunch your session if you exit before
+the wall clock is up, so don't try to "finalize" prematurely — just
+keep improving.
 
 **Which external resources to use is your call.** Foundation models
 (protein, DNA, RNA, structure), reference tracks, per-variant score
