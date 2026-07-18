@@ -1,0 +1,13 @@
+{
+  "primary_model": "claude-opus-4-8[1m]",
+  "models_used": [
+    "claude-haiku-4-5-20251001",
+    "claude-opus-4-8[1m]"
+  ],
+  "total_cost_usd": 4.74364025,
+  "num_turns": 42,
+  "duration_ms": 672339,
+  "terminal_reason": "modal_shutdown_before_completion",
+  "sessions": 2,
+  "note": "Modal issued Runner-shutdown at t~1260s during session 2; container hard-killed. Session 1 produced answer.parquet; session 2 was only 82s."
+}
