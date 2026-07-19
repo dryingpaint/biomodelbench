@@ -1,0 +1,39 @@
+id: bacdive_gram_v0
+title: Bacterial Gram-staining from genome, family-holdout blind eval
+modality: organism
+compute_tier: T1
+headline_metric: auprc
+description: |
+  Predict Gram-staining status (positive vs. negative) for held-out
+  bacterial families from genome assembly alone. Agent gets an NCBI
+  assembly accession + phylum for each strain and — for the training
+  strains — a Gram label. Nothing more granular than phylum is shipped
+  (no genus, no species, no strain name), so the agent must extract
+  features from the actual genome sequence rather than looking the
+  answer up by name. Test strains come from families not represented in
+  the training set.
+
+  Feature choice is on the agent: gene predictions, protein-family
+  counts, KEGG/COG abundances, genome FM embeddings (GenomeOcean, Evo 2,
+  Nucleotide Transformer), lipopolysaccharide biosynthesis-pathway
+  hits, tRNA/rRNA counts, whole-genome k-mer profiles — anything
+  extractable from the assembly.
+answer_file: answer.parquet
+data_files:
+  - bundle/train.parquet
+  - bundle/test.parquet
+  - bundle/prompt.md
+wall_clock_hours: 10
+sources:
+  train_labels: Madin et al. 2020 Sci Data "A synthesis of bacterial and archaeal phenotypic trait data" (CC-BY)
+  train_genomes: NCBI RefSeq / GenBank (via assembly accession)
+  test_labels: same source, family-disjoint from train
+anti_leak:
+  policy: |
+    Test strains come from families not present in the training set
+    (family holdout at the NCBI-Taxonomy family rank). Only assembly
+    accession + phylum are shipped in test.parquet — genus / species /
+    strain name are withheld so the agent can't look up the label. The
+    prompt blacklists (a) any BacDive- or Madin-derived table that lists
+    per-strain Gram staining, (b) direct species-name lookups against
+    the shipped test accessions.
