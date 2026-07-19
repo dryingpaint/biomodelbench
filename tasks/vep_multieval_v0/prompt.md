@@ -93,13 +93,21 @@ partition, stop. Anything else — feel free.
 Each hidden partition has its own labels. Grading joins your
 `answer.parquet` against each partition's labels on
 `(chrom, pos, ref, alt)`, computes per-partition AUPRC / AUROC / Brier
-/ coverage, and reports both. Base rates differ across partitions, so
-absolute AUPRC numbers aren't directly comparable across partitions —
-each partition's number vs. its own base rate is the meaningful read.
+/ coverage, and reports both.
 
-A model that ranks well on one partition but not the other is a
-domain-specific model. A model that ranks well on both captures a
-transferable signal.
+## Reference bars
+
+Numbers to beat, per partition (approximate — actual bars depend on the
+exact subsample the build script produced):
+
+| Partition | Base rate | Best published reference (AUPRC) |
+|---|---:|---:|
+| TraitGym | 0.10 | 0.45 |
+| ClinVar  | 0.50 | 0.95 |
+
+Base rates differ across partitions, so absolute AUPRC numbers aren't
+directly comparable across partitions — each partition's number vs. its
+own base rate is the meaningful read.
 
 ## Rules recap
 

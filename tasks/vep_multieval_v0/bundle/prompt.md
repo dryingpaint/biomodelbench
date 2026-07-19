@@ -26,31 +26,22 @@ Test labels are hidden. You cannot evaluate against them.
 Columns: `chrom` (string, 1-22), `pos` (int, hg38 1-based), `ref`, `alt`.
 **No `label`. No features. No source flag.**
 
-## Compute + resources
+## Compute
 
-You are in a Modal container with a public-internet allowlist, an A10G
-GPU (24 GB VRAM), 8 CPUs, 96 GB RAM. Python 3.11 with
-`torch / transformers / peft / xgboost / lightgbm / scikit-learn /
+Modal container: A10G GPU (24 GB VRAM), 8 CPUs, 96 GB RAM. Python 3.11
+with `torch / transformers / peft / xgboost / lightgbm / scikit-learn /
 pandas / pyarrow / numpy / pyBigWig / pysam / biopython / requests`
-pre-installed. `pip install <x>` works. Wall clock ~10 hours.
+pre-installed. `pip install <x>` works.
 
-**Use the full time budget.** This is a long-horizon run. Even after you
-produce a valid `answer.parquet`, keep iterating — try feature families
-you haven't used, train complementary model types (ensemble a linear
-head with a gradient-boosted tree, for example), rank-average multiple
-submissions, or diagnose which variants are most uncertain and target
-them. Overwrite `answer.parquet`, `method.md`, and `training_manifest.json`
-as you improve. The runner will relaunch your session if you exit before
-the wall clock is up, so don't try to "finalize" prematurely — just
-keep improving.
+**Budget: ~10 hours of GPU compute.** Use it. Even after you produce a
+valid `answer.parquet`, keep iterating until the budget is genuinely
+exhausted. The runner will relaunch your session with a continuation
+prompt if you exit early — don't finalize prematurely.
 
-**Which external resources to use is your call.** Foundation models
-(protein, DNA, RNA, structure), reference tracks, per-variant score
-databases, published labeled corpora, model APIs — anything reachable
-on the open internet that isn't in the leak-prevention list below.
-
-Log every URL / API you touch to `training_manifest.json` so the audit
-can verify the leak rules.
+You have unrestricted outbound internet (subject to the leak-prevention
+list below). What resources, tools, models, or approaches you use is
+entirely your call. Log every URL / API you touch to
+`training_manifest.json` for audit.
 
 ## Leak prevention — DO NOT FETCH
 
@@ -97,21 +88,26 @@ partition, stop. Anything else — feel free.
   extracted, model + validation strategy, anti-leak drop count.
 - `training_manifest.json` — every URL / API / dataset touched.
 
+## What the grader does
+
+Each hidden partition has its own labels. Grading joins your
+`answer.parquet` against each partition's labels on
+`(chrom, pos, ref, alt)`, computes per-partition AUPRC / AUROC / Brier
+/ coverage, and reports both.
+
 ## Reference bars
 
-Reference AUPRCs on similar splits (approximate — actual bars depend on
-the exact subsample the build script produced):
+Numbers to beat, per partition (approximate — actual bars depend on the
+exact subsample the build script produced):
 
-- **TraitGym partition** — base rate ~10 %. phyloP-241m single feature
-  ≈ 0.235. Published supervised methods 0.35–0.45.
-- **ClinVar partition** — base rate ~50 % (P/LP vs. B/LB). Single-
-  feature conservation ≈ 0.70–0.80. AlphaMissense / REVEL / ClinPred
-  sit around 0.95+ on this slice (but were trained on ClinVar, so are
-  near-circular).
+| Partition | Base rate | Best published reference (AUPRC) |
+|---|---:|---:|
+| TraitGym | 0.10 | 0.45 |
+| ClinVar  | 0.50 | 0.95 |
 
-A model that scores well on one partition but not the other is a
-domain-specific model. A model that scores modestly on both captures a
-transferable signal. Both are valid findings.
+Base rates differ across partitions, so absolute AUPRC numbers aren't
+directly comparable across partitions — each partition's number vs. its
+own base rate is the meaningful read.
 
 ## Rules recap
 
