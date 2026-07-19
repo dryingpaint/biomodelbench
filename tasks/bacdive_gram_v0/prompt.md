@@ -36,33 +36,22 @@ Columns: `assembly_accession`, `phylum`. **No `label`.**
 Same shape as train, minus the label. The rows come from families
 disjoint from the training set.
 
-## Compute + resources
+## Compute
 
 Modal container: A10G GPU (24 GB VRAM), 8 CPUs, 96 GB RAM. Python 3.11
 with `torch / transformers / peft / xgboost / lightgbm / scikit-learn /
 pandas / pyarrow / numpy / pyBigWig / pysam / biopython / requests`
-pre-installed. `pip install <x>` works. Wall clock ~10 hours.
+pre-installed. `pip install <x>` works.
 
-**Use the full budget.** Even after you produce a valid `answer.parquet`,
-keep iterating — try more feature families, try ensembling, run more
-genome FM inference. The runner relaunches your session with a
-continuation prompt if you exit early.
+**Budget: ~10 hours of GPU compute.** Use it. Even after you produce a
+valid `answer.parquet`, keep iterating until the budget is genuinely
+exhausted. The runner will relaunch your session with a continuation
+prompt if you exit early — don't finalize prematurely.
 
-**Which external resources to use is your call.** Reasonable directions:
-- NCBI datasets tool / eutils for fetching assemblies
-- Prodigal / Pyrodigal for gene prediction
-- KofamScan / eggNOG-mapper for functional annotation
-- Diamond / MMseqs2 for protein family assignment
-- GenomeOcean, Evo 2, Nucleotide Transformer, HyenaDNA for genome
-  embeddings via HuggingFace
-- ESM-2 for protein-level embeddings of predicted CDS
-- CheckM / CheckM2 for quality-control statistics
-- Raw k-mer / codon-usage / GC-content statistics
-- Pathway-level abundance (peptidoglycan biosynthesis, LPS biosynthesis,
-  teichoic acid biosynthesis — these are the mechanistic axes that
-  determine Gram staining)
-
-Log every URL / API you touch to `training_manifest.json` for audit.
+You have unrestricted outbound internet (subject to the leak-prevention
+list below). What resources, tools, models, or approaches you use is
+entirely your call. Log every URL / API you touch to
+`training_manifest.json` for audit.
 
 ## Leak prevention — DO NOT FETCH
 
@@ -105,21 +94,6 @@ sequence data, not label data.
   pipeline, model, validation strategy (must sit within
   `train.parquet`), anti-leak notes.
 - `training_manifest.json` — every URL / API / dataset touched.
-
-## Reference bar
-
-Baseline calibration on this test split will be computed at build time
-and baked into `grade.py` before release. Rough field-standard bars for
-Gram prediction from genome content:
-
-- Simple codon-usage + tetranucleotide-frequency classifier: AUROC ~0.85
-- LPS biosynthesis pathway hits alone: AUPRC ~0.75-0.85
-- Well-tuned protein-family-profile classifier: AUROC ~0.95+ on
-  species-holdout, drops on family-holdout
-
-Family-holdout is meaningfully harder than species-holdout because
-distant families have distinct protein family repertoires that a
-supervised model may not have learned to weigh.
 
 ## Rules recap
 
