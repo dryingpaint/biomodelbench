@@ -1,0 +1,57 @@
+id: bacdive_multitrait_v0
+title: Bacterial multi-phenotype profile from genome, family-holdout blind eval
+modality: organism
+compute_tier: T2
+headline_metric: composite
+description: |
+  Predict a joint phenotypic profile for held-out bacterial families
+  from the genome assembly alone. Agent gets an NCBI assembly accession
+  + phylum per strain and, for training strains, up to 18 phenotype
+  labels covering growth conditions (oxygen tolerance, optimum
+  temperature and pH, temperature range), morphology and dispersal
+  (gram, cell shape, motility, sporulation), and metabolic pathways
+  (nitrogen fixation, nitrate reduction, denitrification, sulfate
+  reduction, fermentation, and four carbohydrate / metal degradation
+  pathways). Not every training strain has every label; missing values
+  are NaN.
+
+  This is the microbiome-research use case for genome→phenotype
+  inference: a metagenomic study identifies a novel bacterial lineage,
+  and the researcher needs to know what culture conditions would grow
+  it, what niche it fills, and what it does metabolically. Prior tools
+  (Traitar for traits, gRodon for growth rate, dbCAN for CAZy) each
+  handle a slice; this is the first unified family-holdout benchmark.
+
+  Feature choice is on the agent: annotated proteomes, HMMER against
+  Pfam / KEGG / CAZy / marker sets, codon-usage-bias models, protein
+  language models on marker regions, whole-genome k-mer profiles — any
+  approach that maps assembly + phylum to phenotype.
+answer_file: answer.parquet
+data_files:
+  - bundle/train.parquet
+  - bundle/test.parquet
+  - bundle/prompt.md
+wall_clock_hours: 10
+sources:
+  train_labels: Madin et al. 2020 Sci Data "A synthesis of bacterial and archaeal phenotypic trait data" (CC-BY)
+  train_genomes: NCBI RefSeq / GenBank (via assembly accession)
+  test_labels: same source, family-disjoint from train
+grader:
+  per_target_metrics:
+    binary: [auprc, auroc, brier]
+    multiclass: [macro_f1, balanced_accuracy]
+    continuous: [spearman, mae]
+    pathway_multi_label: [auprc, auroc]
+  tier_weights:
+    tier1_growth: 0.40
+    tier2_morphology: 0.30
+    tier3_pathways: 0.30
+  headline: composite  # normalized weighted composite across tiers
+anti_leak:
+  policy: |
+    Test strains come from families not present in the training set.
+    Only assembly accession + phylum are shipped in test.parquet — the
+    organism name is withheld. Any table that maps GCF_ / GCA_ → phenotype
+    (BacDive per-strain export, Madin condensed traits CSV, PATRIC/BV-BRC
+    per-strain page) is off-limits by construction of the honor-system
+    interface.

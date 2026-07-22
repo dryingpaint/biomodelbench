@@ -17,6 +17,173 @@
     "auroc": 0.9106339328632181,
     "brier": 0.13785420847427562
   },
+  "clinvar_by_consequence": {
+    "3_prime_utr": {
+      "n_total": 443,
+      "n_scored": 443,
+      "coverage": 1.0,
+      "positive_rate": 0.011286681715575621,
+      "auprc": 0.37234011199528444,
+      "auroc": 0.9194063926940639,
+      "brier": 0.1418141680927027,
+      "mc_class": "3_prime_utr"
+    },
+    "5_prime_utr": {
+      "n_total": 161,
+      "n_scored": 161,
+      "coverage": 1.0,
+      "positive_rate": 0.09937888198757763,
+      "auprc": 0.3138148184519836,
+      "auroc": 0.7370689655172413,
+      "brier": 0.21354030897374116,
+      "mc_class": "5_prime_utr"
+    },
+    "initiator_codon": {
+      "n_total": 166,
+      "n_scored": 166,
+      "coverage": 1.0,
+      "positive_rate": 0.9819277108433735,
+      "auprc": 0.9924276587954629,
+      "auroc": 0.7075664621676891,
+      "brier": 0.0581618033269021,
+      "mc_class": "initiator_codon"
+    },
+    "intronic": {
+      "n_total": 4442,
+      "n_scored": 4442,
+      "coverage": 1.0,
+      "positive_rate": 0.07541647906348492,
+      "auprc": 0.5537018915026987,
+      "auroc": 0.8389847693599206,
+      "brier": 0.1431755759526427,
+      "mc_class": "intronic"
+    },
+    "missense": {
+      "n_total": 7755,
+      "n_scored": 7755,
+      "coverage": 1.0,
+      "positive_rate": 0.7316569954867828,
+      "auprc": 0.9012186151122015,
+      "auroc": 0.8212722676609645,
+      "brier": 0.1420225178050048,
+      "mc_class": "missense"
+    },
+    "other": {
+      "n_total": 164,
+      "n_scored": 164,
+      "coverage": 1.0,
+      "positive_rate": 0.16463414634146342,
+      "auprc": 0.7657494145594126,
+      "auroc": 0.9472830494728304,
+      "brier": 0.12431016435814493,
+      "mc_class": "other"
+    },
+    "splice_acceptor": {
+      "n_total": 1298,
+      "n_scored": 1298,
+      "coverage": 1.0,
+      "positive_rate": 0.9969183359013868,
+      "auprc": 0.9989215219101129,
+      "auroc": 0.7511591962905718,
+      "brier": 0.029853863647044687,
+      "mc_class": "splice_acceptor"
+    },
+    "splice_donor": {
+      "n_total": 1676,
+      "n_scored": 1676,
+      "coverage": 1.0,
+      "positive_rate": 0.9994033412887828,
+      "auprc": 0.9999978595199983,
+      "auroc": 0.9964179104477612,
+      "brier": 0.030857787777409103,
+      "mc_class": "splice_donor"
+    },
+    "stop_gained": {
+      "n_total": 5723,
+      "n_scored": 5723,
+      "coverage": 1.0,
+      "positive_rate": 0.9975537305608946,
+      "auprc": 0.9989545959824987,
+      "auroc": 0.7637502189525311,
+      "brier": 0.13773045144195065,
+      "mc_class": "stop_gained"
+    },
+    "synonymous": {
+      "n_total": 8149,
+      "n_scored": 8149,
+      "coverage": 1.0,
+      "positive_rate": 0.01092158547060989,
+      "auprc": 0.21278501841890562,
+      "auroc": 0.8181622382691611,
+      "brier": 0.17050227508820084,
+      "mc_class": "synonymous"
+    }
+  },
+  "clinvar_by_review_status": {
+    "2_star": {
+      "n_total": 28201,
+      "n_scored": 28201,
+      "coverage": 1.0,
+      "positive_rate": 0.47845821070174815,
+      "auprc": 0.9013605508242486,
+      "auroc": 0.9134940959222987,
+      "brier": 0.13878801369096205,
+      "review_status": "2_star"
+    },
+    "3_star_expert_panel": {
+      "n_total": 1785,
+      "n_scored": 1785,
+      "coverage": 1.0,
+      "positive_rate": 0.8414565826330532,
+      "auprc": 0.95368189823313,
+      "auroc": 0.8379710444966195,
+      "brier": 0.123162232132939,
+      "review_status": "3_star_expert_panel"
+    }
+  },
+  "clinvar_by_significance_pair": {
+    "strong_only_P_vs_B": {
+      "n_total": 20028,
+      "n_scored": 20028,
+      "coverage": 1.0,
+      "positive_rate": 0.6025564210105852,
+      "auprc": 0.9242917137362623,
+      "auroc": 0.9011388095182575,
+      "brier": 0.13084486510679372,
+      "significance_tiers_included": [
+        "pathogenic",
+        "benign"
+      ]
+    },
+    "hedged_only_LP_vs_LB": {
+      "n_total": 9962,
+      "n_scored": 9962,
+      "coverage": 1.0,
+      "positive_rate": 0.2942180285083317,
+      "auprc": 0.8712869043221574,
+      "auroc": 0.9430255037143349,
+      "brier": 0.1519460704461616,
+      "significance_tiers_included": [
+        "likely_pathogenic",
+        "likely_benign"
+      ]
+    },
+    "any_P_vs_any_B": {
+      "n_total": 29990,
+      "n_scored": 29990,
+      "coverage": 1.0,
+      "positive_rate": 0.5001333777925975,
+      "auprc": 0.9048396606151541,
+      "auroc": 0.9106339328632181,
+      "brier": 0.13785420847427562,
+      "significance_tiers_included": [
+        "pathogenic",
+        "likely_pathogenic",
+        "benign",
+        "likely_benign"
+      ]
+    }
+  },
   "generalization_gap": {
     "delta_auprc_traitgym_minus_clinvar": -0.6991845874212448,
     "note": "Raw AUPRC gap is confounded by base-rate differences (TraitGym base rate ~10%, ClinVar subsample ~50%). Compare each partition's AUPRC to its own base rate for a fair transfer read."
@@ -38,6 +205,29 @@
     },
     "clinvar": {
       "note": "Reference AUPRCs on this exact ClinVar subsample are computed at build time and would live in hidden/build_stats.json. Field-standard predictors (AlphaMissense, REVEL, ClinPred) score >0.9 on ClinVar P/LP vs B/LB but are trained on ClinVar and are near-circular \u2014 treat them as an upper bound, not a bar."
+    },
+    "clinvar_by_consequence": {
+      "note": "Per-molecular-consequence slices. Published ballparks on family/gene-holdout ClinVar splits: AlphaMissense on missense AUROC \u2248 0.95; REVEL missense AUROC \u2248 0.93; SpliceAI on splice_donor/splice_acceptor AUROC > 0.98; no widely-adopted method dominates intronic/UTR because regulatory effects are rare and hard to distinguish.",
+      "missense": {
+        "AlphaMissense_AUROC": 0.94,
+        "REVEL_AUROC": 0.93,
+        "ESM1v_AUROC": 0.83
+      },
+      "splice_donor": {
+        "SpliceAI_AUROC": 0.98
+      },
+      "splice_acceptor": {
+        "SpliceAI_AUROC": 0.98
+      },
+      "stop_gained": {
+        "trivial_note": "essentially binary \u2014 any LoF annotator \u2265 0.99"
+      },
+      "synonymous": {
+        "note": "mostly benign; discrimination hinges on rare splice-altering synonymous \u2014 hard"
+      },
+      "intronic": {
+        "note": "regulatory + cryptic splice; state-of-art AUROC \u2248 0.70-0.80"
+      }
     }
   }
 }

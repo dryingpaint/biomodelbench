@@ -1,0 +1,277 @@
+{
+  "n_test_strains": 622,
+  "row_coverage": 1.0,
+  "composite": 0.6992666079962533,
+  "tier1_growth_composite": 0.8090319637193277,
+  "tier2_morphology_composite": 0.8420423244151711,
+  "tier3_pathways_composite": 0.4101370839465698,
+  "tier_weights": {
+    "tier1_growth": 0.4,
+    "tier2_morphology": 0.3,
+    "tier3_pathways": 0.3
+  },
+  "per_target": {
+    "gram_positive_prob": {
+      "n_scored": 567,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.98955827980729,
+        "auroc": 0.9954032046230629,
+        "brier": 0.014862572882147491
+      },
+      "primary": 0.9954032046230629,
+      "reference_bar": 0.95,
+      "trivial_baseline": 0.5,
+      "normalized": 1.100896010273473
+    },
+    "sporulation_prob": {
+      "n_scored": 482,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.2895842342350037,
+        "auroc": 0.8440216499917992,
+        "brier": 0.02377549682255814
+      },
+      "primary": 0.8440216499917992,
+      "reference_bar": 0.9,
+      "trivial_baseline": 0.5,
+      "normalized": 0.860054124979498
+    },
+    "motility_prob": {
+      "n_scored": 549,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.8946632765110906,
+        "auroc": 0.8914379242802328,
+        "brier": 0.12643478159544932
+      },
+      "primary": 0.8914379242802328,
+      "reference_bar": 0.85,
+      "trivial_baseline": 0.5,
+      "normalized": 1.118394069372094
+    },
+    "oxygen_tolerance": {
+      "n_scored": 584,
+      "n_total": 632,
+      "metrics": {
+        "macro_f1": 0.49439284245485793,
+        "balanced_accuracy": 0.5001268327494486,
+        "prediction_distribution": {
+          "aerobic": 0.6386986301369864,
+          "anaerobic": 0.22773972602739725,
+          "facultative": 0.13356164383561644
+        },
+        "oov_rate": 0.0
+      },
+      "primary": 0.49439284245485793,
+      "reference_bar": 0.7,
+      "trivial_baseline": 0.25,
+      "normalized": 0.5430952054552399
+    },
+    "temperature_range": {
+      "n_scored": 241,
+      "n_total": 632,
+      "metrics": {
+        "macro_f1": 0.5848223990261293,
+        "balanced_accuracy": 0.684106334841629,
+        "prediction_distribution": {
+          "mesophilic": 0.9543568464730291,
+          "thermophilic": 0.03734439834024896,
+          "extreme_thermophilic": 0.008298755186721992
+        },
+        "oov_rate": 0.0
+      },
+      "primary": 0.5848223990261293,
+      "reference_bar": 0.6,
+      "trivial_baseline": 0.25,
+      "normalized": 0.956635425788941
+    },
+    "cell_shape": {
+      "n_scored": 560,
+      "n_total": 632,
+      "metrics": {
+        "macro_f1": 0.26045021645021643,
+        "balanced_accuracy": 0.23896738182452465,
+        "prediction_distribution": {
+          "bacillus": 0.95,
+          "coccus": 0.025,
+          "spiral": 0.010714285714285714,
+          "vibrio": 0.008928571428571428,
+          "filament": 0.005357142857142857
+        },
+        "oov_rate": 0.0
+      },
+      "primary": 0.26045021645021643,
+      "reference_bar": 0.55,
+      "trivial_baseline": 0.14285714285714285,
+      "normalized": 0.28882509303561926
+    },
+    "optimum_temperature_c": {
+      "n_scored": 471,
+      "n_total": 632,
+      "metrics": {
+        "spearman": 0.5994908983828797,
+        "mae": 4.372218130508032,
+        "prediction_coverage": 1.0
+      },
+      "primary": 0.5994908983828797,
+      "reference_bar": 0.7,
+      "trivial_baseline": 0.0,
+      "normalized": 0.8564155691183997
+    },
+    "optimum_ph": {
+      "n_scored": 258,
+      "n_total": 632,
+      "metrics": {
+        "spearman": 0.3079935790801556,
+        "mae": 0.5779370777670414,
+        "prediction_coverage": 1.0
+      },
+      "primary": 0.3079935790801556,
+      "reference_bar": 0.35,
+      "trivial_baseline": 0.0,
+      "normalized": 0.8799816545147304
+    },
+    "pathway_nitrogen_fixation_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.3196577607755131,
+        "auroc": 0.9008097165991902,
+        "brier": 0.05160048085196983
+      },
+      "primary": 0.3196577607755131,
+      "base_rate": 0.060836501901140684,
+      "reference_bar": 0.9,
+      "trivial_baseline": 0.060836501901140684,
+      "normalized": 0.3084276895512458
+    },
+    "pathway_nitrate_reduction_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.7963044702222959,
+        "auroc": 0.7035813003244802,
+        "brier": 0.22600542008138014
+      },
+      "primary": 0.7963044702222959,
+      "base_rate": 0.596958174904943,
+      "reference_bar": 0.75,
+      "trivial_baseline": 0.596958174904943,
+      "normalized": 1.3025608861730142
+    },
+    "pathway_denitrification_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.21899818593576412,
+        "auroc": 0.8171478565179353,
+        "brier": 0.031913936775517654
+      },
+      "primary": 0.21899818593576412,
+      "base_rate": 0.034220532319391636,
+      "reference_bar": 0.75,
+      "trivial_baseline": 0.034220532319391636,
+      "normalized": 0.2581488600324354
+    },
+    "pathway_sulfate_reduction_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.273015873015873,
+        "auroc": 0.9807692307692307,
+        "brier": 0.02857095317719945
+      },
+      "primary": 0.273015873015873,
+      "base_rate": 0.011406844106463879,
+      "reference_bar": 0.8,
+      "trivial_baseline": 0.011406844106463879,
+      "normalized": 0.33174143974529696
+    },
+    "pathway_fermentation_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.5662893424818785,
+        "auroc": 0.8173766816143498,
+        "brier": 0.10407853513746401
+      },
+      "primary": 0.5662893424818785,
+      "base_rate": 0.1520912547528517,
+      "reference_bar": 0.65,
+      "trivial_baseline": 0.1520912547528517,
+      "normalized": 0.8318755026554718
+    },
+    "pathway_cellulose_degradation_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.22252108503494514,
+        "auroc": 0.8428981348637016,
+        "brier": 0.06191011713640986
+      },
+      "primary": 0.22252108503494514,
+      "base_rate": 0.06463878326996197,
+      "reference_bar": 0.75,
+      "trivial_baseline": 0.06463878326996197,
+      "normalized": 0.230363635862361
+    },
+    "pathway_xylan_degradation_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.3183348516188958,
+        "auroc": 0.8593073593073594,
+        "brier": 0.03811086425796496
+      },
+      "primary": 0.3183348516188958,
+      "base_rate": 0.04182509505703422,
+      "reference_bar": 0.7,
+      "trivial_baseline": 0.04182509505703422,
+      "normalized": 0.42011592129271874
+    },
+    "pathway_chitin_degradation_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.05404018423820404,
+        "auroc": 0.8175675675675675,
+        "brier": 0.015347539027714957
+      },
+      "primary": 0.05404018423820404,
+      "base_rate": 0.015209125475285171,
+      "reference_bar": 0.7,
+      "trivial_baseline": 0.015209125475285171,
+      "normalized": 0.05670498864324077
+    },
+    "pathway_fumarate_reduction_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.19197666931644103,
+        "auroc": 0.8739130434782608,
+        "brier": 0.036837746064732634
+      },
+      "primary": 0.19197666931644103,
+      "base_rate": 0.03802281368821293,
+      "reference_bar": 0.55,
+      "trivial_baseline": 0.03802281368821293,
+      "normalized": 0.3007045230614481
+    },
+    "pathway_iron_reduction_prob": {
+      "n_scored": 263,
+      "n_total": 632,
+      "metrics": {
+        "auprc": 0.08643573777220229,
+        "auroc": 0.6749856569133679,
+        "brier": 0.05271061898159532
+      },
+      "primary": 0.08643573777220229,
+      "base_rate": 0.053231939163498096,
+      "reference_bar": 0.6,
+      "trivial_baseline": 0.053231939163498096,
+      "normalized": 0.060727392448464555
+    }
+  },
+  "reference_baselines_note": "Reference bars are literature ballparks under family-holdout: Traitar (Weimann 2016) for categorical traits, Sauer & Wang (2019) for OGT, Weissman 2021 for growth-rate-adjacent codon signals, dbCAN / CAZy for carbohydrate pathways, and marker-gene analyses for N/S/Fe cycles."
+}

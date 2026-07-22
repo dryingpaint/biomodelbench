@@ -1,0 +1,115 @@
+{
+  "created_utc": "2026-07-22",
+  "test": {
+    "path": "test.parquet",
+    "rows": 44706,
+    "unique_exact_tuples": 44706,
+    "assembly": "hg38"
+  },
+  "resources": [
+    {
+      "name": "UCSC hg38-to-hg19 LiftOver chain",
+      "url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/liftOver/hg38ToHg19.over.chain.gz",
+      "purpose": "annotation-coordinate lookup only",
+      "test_mapped_unique": 44688,
+      "negative_strand": 37
+    },
+    {
+      "name": "MyVariant.info batch API",
+      "url": "https://myvariant.info/v1/variant",
+      "metadata_url": "https://myvariant.info/v1/metadata/fields",
+      "purpose": "CADD/dbNSFP/gnomAD annotations for test and leakage-filtered training variants",
+      "labeled_rows_sent": 40000,
+      "test_rows_sent": 44706
+    },
+    {
+      "name": "CADD v1.7 GRCh38 whole-genome SNVs",
+      "url": "https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+      "index_url": "https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz.tbi",
+      "documentation": "https://cadd.bihealth.org/api",
+      "purpose": "discarded sparse-Tabix feasibility probe",
+      "records_recovered_before_discard": 285
+    },
+    {
+      "name": "TraitGym",
+      "dataset_url": "https://huggingface.co/datasets/songlab/TraitGym",
+      "github_url": "https://github.com/songlab-cal/TraitGym",
+      "configs_touched": ["complex_traits", "mendelian_traits", "complex_traits_full", "mendelian_traits_full"],
+      "matched_test_rows": {"complex_traits": 11400, "mendelian_traits": 3380, "overlap_between_partitions": 27},
+      "labels_used_for_training": false,
+      "prediction_files": [
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/preds/all/CADD+GPN-MSA_LLR+Borzoi_L2_L2.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/preds/all/CADD.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/preds/all/CADD+GPN-MSA_LLR+Borzoi_L2_L2.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/preds/all/CADD.LogisticRegression.chrom.parquet"
+      ]
+    },
+    {
+      "name": "songlab ClinVar datasets",
+      "urls": [
+        "https://huggingface.co/datasets/songlab/clinvar",
+        "https://huggingface.co/datasets/songlab/clinvar_vs_benign",
+        "https://huggingface.co/datasets/songlab/deprecated-clinvar-missense"
+      ],
+      "purpose": "overlap audit; clinvar_vs_benign also supplied leakage-filtered missense labels",
+      "clinvar_vs_benign_rows": 50164,
+      "exact_test_tuples_removed": 2797,
+      "eligible_after_filter": 47367,
+      "balanced_sample_annotated": 20000
+    },
+    {
+      "name": "NCBI ClinVar GRCh38 VCF, 2026-07-21 snapshot",
+      "url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz",
+      "index_url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz.tbi",
+      "eligible_unambiguous_biallelic_snv_rows": 1482344,
+      "exact_test_tuples_removed": 30657,
+      "eligible_after_filter": 1451687,
+      "balanced_sample_annotated": 20000
+    },
+    {
+      "name": "GPN-MSA genome-wide scores/catalog (discovery only)",
+      "urls": [
+        "https://huggingface.co/datasets/songlab/gpn-msa-hg38-scores",
+        "https://github.com/songlab-cal/gpn"
+      ],
+      "downloaded_for_training": false
+    }
+  ],
+  "training": {
+    "exact_test_tuple_filter_applied_before_sampling": true,
+    "input_sample_rows": 40000,
+    "cross_source_duplicates_removed": 592,
+    "final_unique_train_rows": 39408,
+    "model": "XGBoost consequence-aware annotation ensemble"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "method": "CADD v1.7 sparse remote Tabix",
+      "status": "discarded: remote sparse retrieval unstable",
+      "validation": null
+    },
+    {
+      "iteration": 2,
+      "method": "CADD-only XGBoost clinical probe",
+      "validation": {"split": "held-out chromosomes", "n": 16318, "auroc": 0.9162979581, "auprc": 0.9017132831, "brier": 0.1111918613}
+    },
+    {
+      "iteration": 3,
+      "method": "CADD + consequence + allele-frequency clinical probe",
+      "validation": {"split": "held-out chromosomes", "n": 16318, "auroc": 0.9805874611, "auprc": 0.9765876687, "brier": 0.0526372977}
+    },
+    {
+      "iteration": 4,
+      "method": "full clinical annotation ensemble",
+      "validation": {"split": "held-out chromosomes", "n": 16318, "auroc": 0.9938157935, "auprc": 0.9939686496, "brier": 0.0260111317}
+    },
+    {
+      "iteration": 5,
+      "method": "TraitGym chromosome-held-out CADD+GPN-MSA+Borzoi predictions",
+      "validation": {"complex_traits_external_auprc": 0.362, "mendelian_traits_external_auprc": 0.648}
+    }
+  ]
+}

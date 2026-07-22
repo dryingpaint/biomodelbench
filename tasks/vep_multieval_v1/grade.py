@@ -1,8 +1,14 @@
-"""Deterministic grader for vep_multieval_v0.
+"""Deterministic grader for vep_multieval_v1.
 
 Reads the shared submission (one score per variant), joins each hidden
 answer file on (chrom, pos, ref, alt), and reports AUPRC / AUROC per
-source plus a generalization-gap summary.
+partition plus ClinVar per-consequence / per-review-status /
+per-significance-pair slices.
+
+Hidden partitions:
+- traitgym_complex     — TraitGym complex_traits_matched_9 (GWAS-fine-mapped common regulatory)
+- traitgym_mendelian   — TraitGym mendelian_traits_matched_9 (GWAS-fine-mapped Mendelian rare)
+- clinvar              — 2-star+ ClinVar P/LP vs B/LB
 """
 from __future__ import annotations
 
@@ -46,9 +52,10 @@ def _grade_slice(truth: pd.DataFrame, sub: pd.DataFrame) -> dict:
 
 
 def grade(submission_path: Path, out_path: Path | None = None) -> dict:
-    tg_path = HIDDEN_DIR / "traitgym_answer.parquet"
+    tg_c_path = HIDDEN_DIR / "traitgym_complex_answer.parquet"
+    tg_m_path = HIDDEN_DIR / "traitgym_mendelian_answer.parquet"
     cv_path = HIDDEN_DIR / "clinvar_answer.parquet"
-    for p in (tg_path, cv_path):
+    for p in (tg_c_path, tg_m_path, cv_path):
         if not p.exists():
             raise SystemExit(f"hidden answer not found at {p}. Run build.py first.")
     sub = pd.read_parquet(submission_path)
@@ -57,17 +64,16 @@ def grade(submission_path: Path, out_path: Path | None = None) -> dict:
             raise ValueError(f"submission missing column: {c}")
     sub["chrom"] = sub["chrom"].astype(str)
 
-    tg = pd.read_parquet(tg_path)
+    tg_c = pd.read_parquet(tg_c_path)
+    tg_m = pd.read_parquet(tg_m_path)
     cv = pd.read_parquet(cv_path)
 
     result = {
-        "traitgym": _grade_slice(tg, sub),
+        "traitgym_complex": _grade_slice(tg_c, sub),
+        "traitgym_mendelian": _grade_slice(tg_m, sub),
         "clinvar": _grade_slice(cv, sub),
     }
 
-    # Per-molecular-consequence ClinVar slices. Only reported when
-    # hidden/clinvar_answer.parquet has an `mc_class` column (added by
-    # scripts/annotate_clinvar_mc.py). Skipped otherwise — backward compat.
     MIN_ROWS_PER_SLICE = 100
     if "mc_class" in cv.columns:
         clinvar_slices: dict[str, dict] = {}
@@ -92,10 +98,6 @@ def grade(submission_path: Path, out_path: Path | None = None) -> dict:
         result["clinvar_by_review_status"] = rev_slices
 
     if "significance_tier" in cv.columns:
-        # Pair-comparisons within significance tier: "how well does the agent
-        # rank strongly-pathogenic vs strongly-benign?" (highest confidence
-        # discrimination) vs "how well does it rank likely_pathogenic vs
-        # likely_benign?" (the tough call cases).
         sig_pairs = {
             "strong_only_P_vs_B": ["pathogenic", "benign"],
             "hedged_only_LP_vs_LB": ["likely_pathogenic", "likely_benign"],
@@ -112,55 +114,50 @@ def grade(submission_path: Path, out_path: Path | None = None) -> dict:
             sig_slices[name] = metrics
         result["clinvar_by_significance_pair"] = sig_slices
 
-    # Generalization gap: TraitGym AUPRC minus ClinVar AUPRC, at parity of
-    # inputs. Interpret with base rates in mind — ClinVar's ~50% base rate
-    # inflates AUPRC vs. TraitGym's 10%, so raw gap is not directly
-    # comparable. We report both.
-    if result["traitgym"]["auprc"] is not None and result["clinvar"]["auprc"] is not None:
-        result["generalization_gap"] = {
-            "delta_auprc_traitgym_minus_clinvar": (
-                result["traitgym"]["auprc"] - result["clinvar"]["auprc"]
-            ),
-            "note": (
-                "Raw AUPRC gap is confounded by base-rate differences "
-                "(TraitGym base rate ~10%, ClinVar subsample ~50%). "
-                "Compare each partition's AUPRC to its own base rate for "
-                "a fair transfer read."
-            ),
-        }
-
-    # Reference bars per source, baked in.
     result["reference_baselines"] = {
-        "traitgym": {
-            "phyloP-241m_Zoonomia": {"auprc": 0.2352, "auroc": 0.6146},
-            "phastCons-43p_Zoonomia_primate": {"auprc": 0.2245, "auroc": 0.6168},
-            "GPN-MSA_absLLR": {"auprc": 0.2081, "auroc": 0.6068},
+        "traitgym_complex": {
+            "note": "AUPRC by chromosome-weighted average (Benegas et al. 2025).",
+            "CADD+GPN-MSA+Borzoi_LR_ensemble": {"auprc": 0.362},
+            "Enformer_LR_probe": {"auprc": 0.303},
+            "Borzoi_LR_probe": {"auprc": 0.297},
+            "CADD_v1.7_LR": {"auprc": 0.284},
+            "GPN-MSA_LR_probe": {"auprc": 0.269},
+            "CADD_v1.7_zero_shot": {"auprc": 0.250},
+            "Enformer_L2_zero_shot": {"auprc": 0.245},
+            "phastCons-43p_Zoonomia": {"auprc": 0.237},
+            "phyloP-241m_Zoonomia": {"auprc": 0.227},
+            "GPN-MSA_absLLR_zero_shot": {"auprc": 0.224},
         },
-        "clinvar": {
-            "note": (
-                "Reference AUPRCs on this exact ClinVar subsample are "
-                "computed at build time and would live in "
-                "hidden/build_stats.json. Field-standard predictors "
-                "(AlphaMissense, REVEL, ClinPred) score >0.9 on ClinVar "
-                "P/LP vs B/LB but are trained on ClinVar and are near-"
-                "circular — treat them as an upper bound, not a bar."
-            ),
+        "traitgym_mendelian": {
+            "note": "AUPRC by chromosome-weighted average (Benegas et al. 2025).",
+            "CADD+GPN-MSA+Borzoi_LR_ensemble": {"auprc": 0.648},
+            "GPN-MSA_LR_probe": {"auprc": 0.584},
+            "CADD_v1.7_LR": {"auprc": 0.549},
+            "Enformer_LR_probe": {"auprc": 0.501},
+            "Borzoi_LR_probe": {"auprc": 0.487},
+            "phyloP-241m_Zoonomia": {"auprc": 0.462},
         },
-        "clinvar_by_consequence": {
-            "note": (
-                "Per-molecular-consequence slices. Published ballparks on "
-                "family/gene-holdout ClinVar splits: AlphaMissense on "
-                "missense AUROC ≈ 0.95; REVEL missense AUROC ≈ 0.93; "
-                "SpliceAI on splice_donor/splice_acceptor AUROC > 0.98; "
-                "no widely-adopted method dominates intronic/UTR because "
-                "regulatory effects are rare and hard to distinguish."
-            ),
-            "missense": {"AlphaMissense_AUROC": 0.94, "REVEL_AUROC": 0.93, "ESM1v_AUROC": 0.83},
-            "splice_donor": {"SpliceAI_AUROC": 0.98},
-            "splice_acceptor": {"SpliceAI_AUROC": 0.98},
-            "stop_gained": {"trivial_note": "essentially binary — any LoF annotator ≥ 0.99"},
-            "synonymous": {"note": "mostly benign; discrimination hinges on rare splice-altering synonymous — hard"},
-            "intronic": {"note": "regulatory + cryptic splice; state-of-art AUROC ≈ 0.70-0.80"},
+        "clinvar_missense": {
+            "note": "Missense-only AUROC on ClinVar (various curated splits).",
+            "AlphaMissense": {"auroc": 0.972},
+            "Evo-2_covariance_probe": {"auroc": 0.971},
+            "CADD_v1.7": {"auroc": 0.966},
+            "GPN-MSA": {"auroc": 0.952},
+            "REVEL": {"auroc": 0.930},
+            "Evo-2_loss_based": {"auroc": 0.932},
+            "CADD_v1.6": {"auroc": 0.911},
+            "ESM-1v": {"auroc": 0.83},
+            "NTv3": {"auroc": 0.586},
+        },
+        "clinvar_by_consequence_evo2": {
+            "note": "Evo-2 covariance probe per-consequence AUROC (EVEE 2026).",
+            "missense": 0.971,
+            "synonymous": 0.961,
+            "nonsense": 0.900,
+            "splice": 0.924,
+            "utr": 0.929,
+            "intronic": 0.984,
+            "other_noncoding": 0.969,
         },
     }
 

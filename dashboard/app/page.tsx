@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loadAllRuns, loadAllTasks } from "@/lib/tasks";
+import LeaderboardTable from "./leaderboard-table";
 
 export default function Home() {
   const tasks = loadAllTasks();
@@ -22,80 +23,7 @@ export default function Home() {
         </p>
       </header>
 
-      <section>
-        <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-3">
-          Results ({runs.filter((r) => r.hasGrade).length} graded run{runs.filter((r) => r.hasGrade).length === 1 ? "" : "s"})
-        </div>
-        <div className="border border-stone-200 bg-white rounded overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs uppercase tracking-wider font-semibold text-stone-500 border-b border-stone-200">
-              <tr>
-                <th className="text-left px-4 py-2">Task</th>
-                <th className="text-left px-4 py-2">Partition</th>
-                <th className="text-left px-4 py-2">Model</th>
-                <th className="text-right px-4 py-2">AUPRC</th>
-                <th className="text-right px-4 py-2">AUROC</th>
-                <th className="text-right px-4 py-2">Cost</th>
-                <th className="text-right px-4 py-2">Turns</th>
-                <th className="text-right px-4 py-2">Duration</th>
-                <th className="text-left px-4 py-2">Run</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((r, i) => (
-                <tr
-                  key={`${r.taskId}-${r.runId}-${r.partition ?? "_"}-${i}`}
-                  className="border-b border-stone-100 last:border-b-0 hover:bg-stone-50"
-                >
-                  <td className="px-4 py-2">
-                    <Link href={`/tasks/${r.taskId}/`} className="text-stone-800 hover:underline">
-                      <code className="font-mono text-xs">{r.taskId}</code>
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs text-stone-700">
-                    {r.partition ?? "—"}
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs text-stone-800">
-                    {r.primaryModel ?? "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.auprc !== null && r.auprc !== undefined ? r.auprc.toFixed(4) : "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.auroc !== null && r.auroc !== undefined ? r.auroc.toFixed(4) : "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.totalCostUsd !== null && r.totalCostUsd !== undefined
-                      ? `$${r.totalCostUsd.toFixed(2)}`
-                      : "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.numTurns ?? "—"}
-                  </td>
-                  <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
-                    {r.durationSeconds ? `${(r.durationSeconds / 60).toFixed(1)}m` : "—"}
-                  </td>
-                  <td className="px-4 py-2">
-                    <Link
-                      href={`/tasks/${r.taskId}/runs/${r.runId}/`}
-                      className="text-blue-700 hover:underline font-mono text-xs"
-                    >
-                      {r.runId}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {runs.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="px-4 py-4 text-sm text-stone-500 text-center">
-                    No runs yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <LeaderboardTable rows={runs} />
 
       <section>
         <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-3">

@@ -1,0 +1,29 @@
+{
+  "task": "bacdive_gram_v0 — bacterial Gram-stain prediction (family-holdout)",
+  "inputs_provided": ["train.parquet", "test.parquet"],
+  "external_resources": [
+    {
+      "name": "NCBI Datasets API v2 — genome dataset_report",
+      "url": "https://api.ncbi.nlm.nih.gov/datasets/v2/genome/dataset_report",
+      "use": "Resolve assembly_name, GC%, genome length, contig count, protein-coding gene count for each assembly accession."
+    },
+    {
+      "name": "NCBI genome FTP (assembly proteomes / genomes)",
+      "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/",
+      "use": "Download <acc>_<asm>_protein.faa.gz (RefSeq annotated proteomes); fallback <acc>_<asm>_genomic.fna.gz + pyrodigal gene calling for unannotated assemblies."
+    },
+    {
+      "name": "EBI InterPro — Pfam HMM profiles",
+      "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/pfam/<PFAM_ACC>?annotation=hmm",
+      "use": "Fetch 20 marker HMMs (LPS/outer-membrane vs cell-wall/anchor) for hmmsearch.",
+      "pfam_accessions": ["PF03331","PF01103","PF04453","PF03968","PF00691","PF13505","PF04413","PF02348","PF03548","PF07161","PF02606","PF04932","PF13103","PF06835","PF04203","PF00746","PF04464","PF01464","PF00905","PF00912"]
+    },
+    {
+      "name": "NCBI Entrez efetch (taxonomy)",
+      "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=taxonomy",
+      "use": "Retrieve family rank per tax_id — used ONLY for family-grouped cross-validation, NOT as a model feature."
+    }
+  ],
+  "software": ["pyhmmer (HMMER3)", "pyrodigal (Prodigal)", "lightgbm", "scikit-learn", "pandas", "requests"],
+  "notes": "Model features are strictly genome-sequence-derived (marker-gene HMM hits, GC/size/coding-density, amino-acid composition) plus the provided phylum. Organism names / species / genus / family were never used as predictive features."
+}

@@ -76,7 +76,10 @@ image = (
         "pysam>=0.22",
         "biopython>=1.83",
     )
-    .run_commands("npm install -g @anthropic-ai/claude-code")
+    .run_commands(
+        "npm install -g @anthropic-ai/claude-code",
+        "npm install -g @openai/codex",
+    )
 )
 
 app = modal.App(APP_NAME, image=image)
@@ -166,13 +169,22 @@ SNAPSHOT_INTERVAL_SECONDS = 300  # commit workdir → volume every 5 min
 
 
 @app.function(
-    gpu="A10G",
+    gpu="H100!",  # full H100 (80 GB VRAM) — the "!" pins us to a single physical
+                   # GPU and requests the full-generation SKU (not any variant).
+                   # Fits Enformer / Borzoi / Evo-2 / ESM-2 15B locally with room.
     timeout=36000,  # 10h container lifetime.
-    memory=98304,  # 96 GB — headroom for loading multi-GB bigWigs + FMs in-process.
-    cpu=8,
-    secrets=[modal.Secret.from_name("anthropic-api")],
+    memory=262144,  # 256 GB RAM — up from 96 GB. hg38.fa + phyloP100way + cactus241
+                    # + GPN-MSA scores + full ClinVar can co-reside in memory without
+                    # OOMing when the agent runs SpliceAI + LightGBM + tabix in parallel.
+    cpu=16,          # up from 8 — helps parallel feature extraction (tabix / pyhmmer /
+                    # HTTP fetches / arrow decoding).
+    secrets=[
+        modal.Secret.from_name("anthropic-api"),
+        modal.Secret.from_name("codex-auth"),
+        modal.Secret.from_name("claude-oauth"),
+    ],
     volumes={str(VOL_MOUNT): volume},
-    max_containers=1,
+    max_containers=20,  # room for many parallel agent + reasoning-level ablations
 )
 def _run_one(
     task: str,
@@ -265,16 +277,19 @@ def _run_one(
     snapshot_thread = threading.Thread(target=_snapshot_loop, daemon=True)
     snapshot_thread.start()
 
-    # We loop claude sessions until the wall clock is close to expiring. If
-    # the agent exits early, we relaunch with a continuation prompt urging it
-    # to keep iterating. Quick consecutive exits (< 2 min) signal the agent
-    # genuinely has nothing more to do — we stop after a few of those.
-    MIN_REMAINING_FOR_RELAUNCH = 900  # 15 min buffer for final artifact commit / grade
-    QUICK_EXIT_THRESHOLD = 120  # <2 min = "nothing left to do"
-    MAX_CONSECUTIVE_QUICK_EXITS = 3
+    # We loop claude sessions until the wall clock is close to expiring. The
+    # agent is expected to consume the full budget: we do NOT short-circuit
+    # on "quick exits" — if the agent's process returns fast, we relaunch
+    # with a continuation prompt that reminds it there's still budget left.
+    # A minimum 60s inter-session sleep prevents busy-looping if something
+    # in claude-code itself is throwing immediately, but there's no
+    # consecutive-quick-exit cap.
+    MIN_REMAINING_FOR_RELAUNCH = 600  # 10 min buffer for final artifact commit / grade
+    QUICK_EXIT_THRESHOLD = 120  # informational threshold for logging
+    MIN_INTER_SESSION_SLEEP = 60  # only on quick exits — avoid busy-loop on deterministic failures
 
     session_num = 0
-    consecutive_quick_exits = 0
+    quick_exit_count = 0  # tracked for logging only
     exit_reason = "completed"
     last_returncode = 0
     while True:
@@ -283,10 +298,6 @@ def _run_one(
         if remaining < MIN_REMAINING_FOR_RELAUNCH:
             print(f"[loop] {remaining:.0f}s remaining < {MIN_REMAINING_FOR_RELAUNCH}s buffer; stopping loop", flush=True)
             exit_reason = "wall_clock"
-            break
-        if consecutive_quick_exits >= MAX_CONSECUTIVE_QUICK_EXITS:
-            print(f"[loop] {consecutive_quick_exits} consecutive quick exits; agent appears done", flush=True)
-            exit_reason = "agent_done"
             break
 
         session_num += 1
@@ -297,33 +308,80 @@ def _run_one(
             method_present = (workdir / "method.md").exists()
             remain_min = int(remaining / 60)
             continuation = (
-                f"Continue improving your BioModelBench submission. You have "
-                f"approximately {remain_min} minutes of compute remaining out "
-                f"of a {int(wall_clock_seconds/60)} minute total budget. Do "
-                f"NOT stop early.\n\n"
+                f"Continue iterating on your BioModelBench submission. You "
+                f"have approximately {remain_min} minutes of compute remaining "
+                f"out of a {int(wall_clock_seconds/60)} minute total budget. "
+                f"The runner will relaunch this session as many times as "
+                f"needed until the wall clock is exhausted; treat each "
+                f"restart as a chance to try a substantively different "
+                f"approach.\n\n"
                 f"Current state of /task:\n"
-                f"- answer.parquet: {'present' if answer_present else 'MISSING — first priority'}\n"
+                f"- answer.parquet: {'present' if answer_present else 'missing — this is the first priority'}\n"
                 f"- method.md: {'present' if method_present else 'missing'}\n"
-                f"- Any scripts / logs / features files you wrote in the "
-                f"previous session are still on disk. Read method.md and "
-                f"training_manifest.json to understand what you already did.\n\n"
-                f"Directives:\n"
-                f"1. If answer.parquet is missing, produce it before anything else.\n"
-                f"2. If it exists, keep improving it. Approach is your call.\n"
-                f"3. Do not stop until you have genuinely exhausted useful "
-                f"directions. Use the full remaining time.\n"
-                f"4. The blacklist and anti-leak rules from the original "
-                f"prompt still apply. Re-read /task/prompt.md if unsure."
+                f"- Scripts, logs, and feature files from previous sessions "
+                f"are still on disk. Read method.md and training_manifest.json "
+                f"to see what you already tried.\n\n"
+                f"Steps you can take:\n"
+                f"1. If answer.parquet is missing, produce it as the first "
+                f"priority.\n"
+                f"2. If it exists, iterate: try a substantively different "
+                f"feature set, model family, training source, ensemble "
+                f"scheme, or calibration.\n"
+                f"3. Spend the remaining time on validation, error analysis "
+                f"of the weakest partition or slice, alternative model "
+                f"architectures, or held-out slices to characterize "
+                f"generalization.\n"
+                f"4. Re-read /task/prompt.md for the task specification, "
+                f"the answer schema, and the SOTA reference tables."
             )
             # Pass the continuation through a file to avoid shell-quoting hazards.
             cont_path = workdir / f".continuation_{session_num}.md"
             cont_path.write_text(continuation)
-            cmd = (
-                'claude --dangerously-skip-permissions --print '
-                '--output-format stream-json --verbose '
-                f'"$(cat {cont_path.name})"'
-            )
-            print(f"[loop] session {session_num} — continuation prompt written to {cont_path.name}", flush=True)
+
+            # Prefer native session-continuation over restart-with-prompt. Both
+            # claude-code and codex expose a "resume the last session" mode that
+            # preserves the conversation context (and prompt cache) across
+            # invocations. This is materially better than starting a fresh
+            # session with a continuation prompt: the agent retains full memory
+            # of everything it tried in prior sessions, the model doesn't
+            # re-read method.md / training_manifest.json each time, and the
+            # cached prefix from session 1 stays warm.
+            #
+            # Detection is based on the initial agent_command:
+            # - `codex exec ...` → codex → use `codex exec resume --last --skip-git-repo-check --json <prompt>`
+            #   (sandbox / reasoning_effort are inherited from session 1)
+            # - anything else → claude-code → prepend `--continue` to the command
+            if "codex exec" in agent_command and "codex exec resume" not in agent_command:
+                cmd = (
+                    'codex exec resume --last --skip-git-repo-check --json '
+                    f'"$(cat {cont_path.name})"'
+                )
+            elif "claude" in agent_command:
+                # Replace the initial prompt with the continuation prompt AND
+                # add --continue so the same session is resumed.
+                template = agent_command
+                if '"$(cat prompt.md)"' in template:
+                    template = template.replace('"$(cat prompt.md)"', f'"$(cat {cont_path.name})"')
+                # Insert --continue right after the `claude` binary. Anchor on
+                # `<space>claude<space>` so we don't accidentally match
+                # `~/.claude ` inside a `mkdir -p ~/.claude && ...` prefix.
+                if " --continue " not in template and " -c " not in template:
+                    if " claude " in template:
+                        template = template.replace(" claude ", " claude --continue ", 1)
+                    elif template.startswith("claude "):
+                        template = "claude --continue " + template[len("claude "):]
+                cmd = template
+            else:
+                # Unknown agent — fall back to the substitution behaviour.
+                if '"$(cat prompt.md)"' in agent_command:
+                    cmd = agent_command.replace('"$(cat prompt.md)"', f'"$(cat {cont_path.name})"')
+                else:
+                    cmd = (
+                        'claude --continue --dangerously-skip-permissions --print '
+                        '--output-format stream-json --verbose '
+                        f'"$(cat {cont_path.name})"'
+                    )
+            print(f"[loop] session {session_num} — resuming session, continuation prompt at {cont_path.name}", flush=True)
 
         # Cap this session's wait so we can still relaunch within remaining budget.
         session_wait = max(60, min(int(remaining), wall_clock_seconds))
@@ -346,10 +404,13 @@ def _run_one(
         print(f"[loop] session {session_num} exited rc={last_returncode} in {session_dur:.0f}s", flush=True)
 
         if session_dur < QUICK_EXIT_THRESHOLD:
-            consecutive_quick_exits += 1
-            print(f"[loop] quick exit #{consecutive_quick_exits}/{MAX_CONSECUTIVE_QUICK_EXITS}", flush=True)
-        else:
-            consecutive_quick_exits = 0
+            quick_exit_count += 1
+            print(f"[loop] quick exit ({session_dur:.0f}s < {QUICK_EXIT_THRESHOLD}s); "
+                  f"total quick exits so far: {quick_exit_count} — relaunching anyway",
+                  flush=True)
+            # Sleep a minimum before relaunching to avoid busy-looping on
+            # deterministic failures (import error, out-of-quota, etc.).
+            time.sleep(MIN_INTER_SESSION_SLEEP)
 
         # Give any background jobs the agent kicked off (e.g., long-running
         # feature-extraction scripts) a chance to finish before we relaunch.
@@ -473,6 +534,10 @@ def _download_and_write(task: str, run_id: str, task_dir: Path) -> Path:
     return out_dir
 
 
+def _call_id_path(task_dir: Path, run_id: str) -> Path:
+    return task_dir / "runs" / run_id / "function_call_id.txt"
+
+
 @app.local_entrypoint()
 def launch(
     task: str,
@@ -482,12 +547,15 @@ def launch(
     skip_grade: bool = False,
     answer_filename: str = "answer.parquet",
 ):
-    """Run one agent attempt, sync artifacts, invoke the task's grade.py.
+    """Spawn one agent attempt, sync artifacts, invoke the task's grade.py.
 
-    Resilient to Modal client-side ConnectionError: even if the .remote()
-    poll drops, the run keeps going on Modal thanks to periodic mid-run
-    snapshots inside _run_one. Once the run finishes (or is cancelled), the
-    `retrieve` entrypoint can pull whatever's on the volume.
+    Uses `.spawn().get()` rather than `.remote()`. `.spawn()` decouples the
+    remote input from the local process lifecycle so a network glitch on
+    the client side doesn't cause Modal to send InputCancellation to the
+    container. The function_call_id is persisted so `resume` can reattach
+    if the launch script itself dies. Periodic mid-run snapshots inside
+    _run_one commit artifacts to the volume every 5 min; `retrieve` pulls
+    whatever's there if the call is stopped.
     """
     task_dir = _task_dir(task)
     _task_bundle(task)  # sanity check: bundle exists
@@ -496,18 +564,28 @@ def launch(
         run_id = time.strftime("%Y%m%dT%H%M%S")
     print(f"[{task}] launching run_id={run_id} (wall_clock ≤ {wall_clock_seconds}s)")
 
+    call = _run_one.spawn(task, run_id, agent_command, wall_clock_seconds)
+    call_id = call.object_id
+    call_id_file = _call_id_path(task_dir, run_id)
+    call_id_file.parent.mkdir(parents=True, exist_ok=True)
+    call_id_file.write_text(call_id + "\n")
+    print(f"[{task}] spawned function_call_id={call_id}")
+    print(f"[{task}]   reattach with:")
+    print(f"    uv run modal run harness/modal_runner.py::resume --task {task} --run-id {run_id}")
+
     result: dict = {}
     try:
-        result = _run_one.remote(task, run_id, agent_command, wall_clock_seconds)
+        result = call.get()
         print(
             f"[{task}] rc={result.get('returncode')} "
             f"duration={result.get('duration_seconds')}s artifacts={result.get('n_artifacts')}"
         )
     except Exception as exc:
-        # Modal client can raise ConnectionError, InternalFailure, or
-        # RemoteError on cancellation. The remote run may or may not have
-        # completed; either way, try to salvage whatever's on the volume.
-        print(f"[{task}] .remote() raised {type(exc).__name__}: {exc}")
+        # Even with spawn(), .get() can raise on cancellation, server-side
+        # failure, or if the local process was disconnected long enough for
+        # Modal to consider the polling session dead. The spawned call is
+        # independent of us, so we still try to salvage from the volume.
+        print(f"[{task}] .get() raised {type(exc).__name__}: {exc}")
         print(f"[{task}] falling through to volume retrieval for run_id={run_id}")
 
     try:
@@ -521,6 +599,69 @@ def launch(
     (out_dir / "run_summary.json").write_text(json.dumps({
         "task": task,
         "run_id": run_id,
+        "function_call_id": call_id,
+        "returncode": result.get("returncode"),
+        "duration_seconds": result.get("duration_seconds"),
+        "stdout_tail": result.get("stdout_tail"),
+        "stderr_tail": result.get("stderr_tail"),
+        "n_artifacts": result.get("n_artifacts"),
+    }, indent=2))
+
+    if not skip_grade:
+        _run_grade(task, out_dir, task_dir, answer_filename)
+
+
+@app.local_entrypoint()
+def resume(
+    task: str,
+    run_id: str = "",
+    call_id: str = "",
+    skip_grade: bool = False,
+    answer_filename: str = "answer.parquet",
+):
+    """Reattach to a previously spawned _run_one call and wait for it.
+
+    Give either --run-id (looks up function_call_id.txt from the local
+    runs/<run_id>/ dir) or --call-id directly. Useful when the launch
+    script exited but the remote spawn is still running: this reattaches,
+    waits for completion, and grades.
+    """
+    task_dir = _task_dir(task)
+
+    if not call_id:
+        if not run_id:
+            raise SystemExit("resume needs either --run-id or --call-id")
+        cid_file = _call_id_path(task_dir, run_id)
+        if not cid_file.exists():
+            raise SystemExit(f"no function_call_id.txt at {cid_file}")
+        call_id = cid_file.read_text().strip()
+    if not run_id:
+        run_id = time.strftime("%Y%m%dT%H%M%S")
+
+    print(f"[{task}] reattaching to function_call_id={call_id} (run_id={run_id})")
+    call = modal.FunctionCall.from_id(call_id)
+
+    result: dict = {}
+    try:
+        result = call.get()
+        print(
+            f"[{task}] rc={result.get('returncode')} "
+            f"duration={result.get('duration_seconds')}s artifacts={result.get('n_artifacts')}"
+        )
+    except Exception as exc:
+        print(f"[{task}] .get() raised {type(exc).__name__}: {exc}")
+        print(f"[{task}] falling through to volume retrieval for run_id={run_id}")
+
+    try:
+        out_dir = _download_and_write(task, run_id, task_dir)
+    except Exception as exc:
+        print(f"[{task}] volume retrieval failed: {exc}")
+        return
+
+    (out_dir / "run_summary.json").write_text(json.dumps({
+        "task": task,
+        "run_id": run_id,
+        "function_call_id": call_id,
         "returncode": result.get("returncode"),
         "duration_seconds": result.get("duration_seconds"),
         "stdout_tail": result.get("stdout_tail"),

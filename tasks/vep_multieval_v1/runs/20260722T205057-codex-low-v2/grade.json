@@ -1,0 +1,302 @@
+{
+  "traitgym_complex": {
+    "n_total": 11400,
+    "n_scored": 11400,
+    "coverage": 1.0,
+    "positive_rate": 0.1,
+    "auprc": 0.3477656748904066,
+    "auroc": 0.7246250128244588,
+    "brier": 0.0780419175684103
+  },
+  "traitgym_mendelian": {
+    "n_total": 3353,
+    "n_scored": 3353,
+    "coverage": 1.0,
+    "positive_rate": 0.10080524903071876,
+    "auprc": 0.7290530475985209,
+    "auroc": 0.8863159547430499,
+    "brier": 0.045542459137556446
+  },
+  "clinvar": {
+    "n_total": 29953,
+    "n_scored": 29953,
+    "coverage": 1.0,
+    "positive_rate": 0.4999499215437519,
+    "auprc": 0.9977556028238471,
+    "auroc": 0.9976482212866016,
+    "brier": 0.11907195568185475
+  },
+  "clinvar_by_consequence": {
+    "3_prime_utr": {
+      "n_total": 445,
+      "n_scored": 445,
+      "coverage": 1.0,
+      "positive_rate": 0.0022471910112359553,
+      "auprc": 1.0,
+      "auroc": 1.0,
+      "brier": 0.016015558740416314,
+      "mc_class": "3_prime_utr"
+    },
+    "5_prime_utr": {
+      "n_total": 170,
+      "n_scored": 170,
+      "coverage": 1.0,
+      "positive_rate": 0.07058823529411765,
+      "auprc": 0.9150102212602212,
+      "auroc": 0.9947257383966245,
+      "brier": 0.01608554006566774,
+      "mc_class": "5_prime_utr"
+    },
+    "initiator_codon": {
+      "n_total": 163,
+      "n_scored": 163,
+      "coverage": 1.0,
+      "positive_rate": 0.9815950920245399,
+      "auprc": 0.9999611801242235,
+      "auroc": 0.9979166666666668,
+      "brier": 0.009623188099986194,
+      "mc_class": "initiator_codon"
+    },
+    "intronic": {
+      "n_total": 4368,
+      "n_scored": 4368,
+      "coverage": 1.0,
+      "positive_rate": 0.07142857142857142,
+      "auprc": 0.9546805006649599,
+      "auroc": 0.9913012694077783,
+      "brier": 0.08325521696129369,
+      "mc_class": "intronic"
+    },
+    "missense": {
+      "n_total": 7861,
+      "n_scored": 7861,
+      "coverage": 1.0,
+      "positive_rate": 0.7324767841241572,
+      "auprc": 0.994719526855479,
+      "auroc": 0.9865989339895026,
+      "brier": 0.1101696821948244,
+      "mc_class": "missense"
+    },
+    "other": {
+      "n_total": 133,
+      "n_scored": 133,
+      "coverage": 1.0,
+      "positive_rate": 0.06766917293233082,
+      "auprc": 0.5499189699189699,
+      "auroc": 0.9435483870967742,
+      "brier": 0.078607924339837,
+      "mc_class": "other"
+    },
+    "splice_acceptor": {
+      "n_total": 1231,
+      "n_scored": 1231,
+      "coverage": 1.0,
+      "positive_rate": 0.9943135662063363,
+      "auprc": 0.9998935172166883,
+      "auroc": 0.9819094304388422,
+      "brier": 0.003023629908950497,
+      "mc_class": "splice_acceptor"
+    },
+    "splice_donor": {
+      "n_total": 1649,
+      "n_scored": 1649,
+      "coverage": 1.0,
+      "positive_rate": 0.9981807155852032,
+      "auprc": 0.9999974194559538,
+      "auroc": 0.9985824220332119,
+      "brier": 0.0016987371422108974,
+      "mc_class": "splice_donor"
+    },
+    "stop_gained": {
+      "n_total": 5762,
+      "n_scored": 5762,
+      "coverage": 1.0,
+      "positive_rate": 0.9980909406456092,
+      "auprc": 0.9998903473695775,
+      "auroc": 0.9504038823287649,
+      "brier": 0.0020397066738663283,
+      "mc_class": "stop_gained"
+    },
+    "synonymous": {
+      "n_total": 8155,
+      "n_scored": 8155,
+      "coverage": 1.0,
+      "positive_rate": 0.011036174126302882,
+      "auprc": 0.926176034133817,
+      "auroc": 0.9923599917338293,
+      "brier": 0.2814725773992926,
+      "mc_class": "synonymous"
+    }
+  },
+  "clinvar_by_review_status": {
+    "2_star": {
+      "n_total": 28058,
+      "n_scored": 28058,
+      "coverage": 1.0,
+      "positive_rate": 0.4786870054886307,
+      "auprc": 0.9978033760542938,
+      "auroc": 0.9977506326288467,
+      "brier": 0.12238586804362539,
+      "review_status": "2_star"
+    },
+    "3_star_expert_panel": {
+      "n_total": 1764,
+      "n_scored": 1764,
+      "coverage": 1.0,
+      "positive_rate": 0.844671201814059,
+      "auprc": 0.9973086753206771,
+      "auroc": 0.9895973154362416,
+      "brier": 0.054083417956062155,
+      "review_status": "3_star_expert_panel"
+    },
+    "unknown": {
+      "n_total": 124,
+      "n_scored": 124,
+      "coverage": 1.0,
+      "positive_rate": 0.3790322580645161,
+      "auprc": 1.0,
+      "auroc": 1.0,
+      "brier": 0.3004551497174971,
+      "review_status": "unknown"
+    }
+  },
+  "clinvar_by_significance_pair": {
+    "strong_only_P_vs_B": {
+      "n_total": 20145,
+      "n_scored": 20145,
+      "coverage": 1.0,
+      "positive_rate": 0.6033258873169521,
+      "auprc": 0.9985750117155847,
+      "auroc": 0.9980540113963571,
+      "brier": 0.05255063622438246,
+      "significance_tiers_included": [
+        "pathogenic",
+        "benign"
+      ]
+    },
+    "hedged_only_LP_vs_LB": {
+      "n_total": 9790,
+      "n_scored": 9790,
+      "coverage": 1.0,
+      "positive_rate": 0.28631256384065373,
+      "auprc": 0.9952588748569033,
+      "auroc": 0.9977619871081103,
+      "brier": 0.2561711006057209,
+      "significance_tiers_included": [
+        "likely_pathogenic",
+        "likely_benign"
+      ]
+    },
+    "any_P_vs_any_B": {
+      "n_total": 29935,
+      "n_scored": 29935,
+      "coverage": 1.0,
+      "positive_rate": 0.4996492400200434,
+      "auprc": 0.9977542288592687,
+      "auroc": 0.9976486942275873,
+      "brier": 0.11914306469584743,
+      "significance_tiers_included": [
+        "pathogenic",
+        "likely_pathogenic",
+        "benign",
+        "likely_benign"
+      ]
+    }
+  },
+  "reference_baselines": {
+    "traitgym_complex": {
+      "note": "AUPRC by chromosome-weighted average (Benegas et al. 2025).",
+      "CADD+GPN-MSA+Borzoi_LR_ensemble": {
+        "auprc": 0.362
+      },
+      "Enformer_LR_probe": {
+        "auprc": 0.303
+      },
+      "Borzoi_LR_probe": {
+        "auprc": 0.297
+      },
+      "CADD_v1.7_LR": {
+        "auprc": 0.284
+      },
+      "GPN-MSA_LR_probe": {
+        "auprc": 0.269
+      },
+      "CADD_v1.7_zero_shot": {
+        "auprc": 0.25
+      },
+      "Enformer_L2_zero_shot": {
+        "auprc": 0.245
+      },
+      "phastCons-43p_Zoonomia": {
+        "auprc": 0.237
+      },
+      "phyloP-241m_Zoonomia": {
+        "auprc": 0.227
+      },
+      "GPN-MSA_absLLR_zero_shot": {
+        "auprc": 0.224
+      }
+    },
+    "traitgym_mendelian": {
+      "note": "AUPRC by chromosome-weighted average (Benegas et al. 2025).",
+      "CADD+GPN-MSA+Borzoi_LR_ensemble": {
+        "auprc": 0.648
+      },
+      "GPN-MSA_LR_probe": {
+        "auprc": 0.584
+      },
+      "CADD_v1.7_LR": {
+        "auprc": 0.549
+      },
+      "Enformer_LR_probe": {
+        "auprc": 0.501
+      },
+      "Borzoi_LR_probe": {
+        "auprc": 0.487
+      },
+      "phyloP-241m_Zoonomia": {
+        "auprc": 0.462
+      }
+    },
+    "clinvar_missense": {
+      "note": "Missense-only AUROC on ClinVar (various curated splits).",
+      "AlphaMissense": {
+        "auroc": 0.972
+      },
+      "Evo-2_covariance_probe": {
+        "auroc": 0.971
+      },
+      "CADD_v1.7": {
+        "auroc": 0.966
+      },
+      "GPN-MSA": {
+        "auroc": 0.952
+      },
+      "REVEL": {
+        "auroc": 0.93
+      },
+      "Evo-2_loss_based": {
+        "auroc": 0.932
+      },
+      "CADD_v1.6": {
+        "auroc": 0.911
+      },
+      "ESM-1v": {
+        "auroc": 0.83
+      },
+      "NTv3": {
+        "auroc": 0.586
+      }
+    },
+    "clinvar_by_consequence_evo2": {
+      "note": "Evo-2 covariance probe per-consequence AUROC (EVEE 2026).",
+      "missense": 0.971,
+      "synonymous": 0.961,
+      "nonsense": 0.9,
+      "splice": 0.924,
+      "utr": 0.929,
+      "intronic": 0.984,
+      "other_noncoding": 0.969
+    }
+  }
+}

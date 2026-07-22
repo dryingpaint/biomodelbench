@@ -1,0 +1,10 @@
+{
+  "task": "vep_multieval_v1",
+  "run_id": "20260722T065453-codex-low",
+  "function_call_id": "fc-01KY49PA0Q3YVAKS5JPM6TRMAG",
+  "returncode": null,
+  "duration_seconds": null,
+  "stdout_tail": null,
+  "stderr_tail": null,
+  "n_artifacts": null
+}

@@ -1,0 +1,167 @@
+{
+  "test_tuple_count": 44706,
+  "final_training_rows": 53024,
+  "cross_source_training_duplicates_removed": 27,
+  "resources": [
+    {
+      "name": "Ensembl REST VEP release 116",
+      "url": "https://rest.ensembl.org/vep/human/region",
+      "purpose": "Allele-aware CADD v1.7, AlphaMissense, SpliceAI, LoFTEE, dbNSFP, consequence, phyloP and frequency annotations; clinical-significance fields ignored",
+      "test_rows_annotated": 44706,
+      "test_rows_with_cadd": 44689,
+      "training_rows_requested": 53024,
+      "training_rows_annotated": 53004
+    },
+    {
+      "name": "TraitGym complex_traits_matched_9",
+      "url": "https://huggingface.co/datasets/songlab/TraitGym",
+      "files": [
+        "complex_traits_matched_9/test.parquet (only chrom,pos,ref,alt read)",
+        "complex_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "complex_traits_matched_9/preds/all/CADD+GPN-MSA_LLR+Borzoi_L2_L2.LogisticRegression.chrom.parquet (audit only)",
+        "complex_traits_matched_9/preds/all/GPN-MSA.LogisticRegression.chrom.parquet (audit only)",
+        "complex_traits_matched_9/preds/all/Borzoi.LogisticRegression.chrom.parquet (audit only)"
+      ],
+      "rows": 11400,
+      "exact_test_matches": 11400,
+      "labels_read": false,
+      "purpose": "Published chromosome-held-out predictions"
+    },
+    {
+      "name": "TraitGym mendelian_traits_matched_9",
+      "url": "https://huggingface.co/datasets/songlab/TraitGym",
+      "files": [
+        "mendelian_traits_matched_9/test.parquet (only chrom,pos,ref,alt read)",
+        "mendelian_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "mendelian_traits_matched_9/preds/all/CADD+GPN-MSA_LLR+Borzoi_L2_L2.LogisticRegression.chrom.parquet (audit only)",
+        "mendelian_traits_matched_9/preds/all/GPN-MSA.LogisticRegression.chrom.parquet (audit only)",
+        "mendelian_traits_matched_9/preds/all/Borzoi.LogisticRegression.chrom.parquet (audit only)"
+      ],
+      "rows": 3380,
+      "exact_test_matches": 3380,
+      "labels_read": false,
+      "purpose": "Published chromosome-held-out predictions"
+    },
+    {
+      "name": "GenerTeam ClinVar VEP",
+      "url": "https://huggingface.co/datasets/GenerTeam/variant-effect-prediction/resolve/main/ClinVar_VEP_results.parquet",
+      "source_rows": 40976,
+      "excluded_exact_test": 2037,
+      "used_for_training": true
+    },
+    {
+      "name": "HuggingFaceBio ClinVar VEP non-coding",
+      "url": "https://huggingface.co/datasets/HuggingFaceBio/clinvar-vep/resolve/main/non_coding/clinvar_non_coding.parquet",
+      "source_rows": 15258,
+      "excluded_exact_test": 1146,
+      "used_for_training": true
+    },
+    {
+      "name": "HuggingFaceBio ClinVar VEP coding",
+      "url": "https://huggingface.co/datasets/HuggingFaceBio/clinvar-vep/resolve/main/coding/clinvar_coding.parquet",
+      "source_rows": 39473,
+      "exact_test_matches": 2031,
+      "used_for_training": false,
+      "note": "Touched during source comparison; duplicate of the GenerTeam coding subset"
+    },
+    {
+      "name": "CADD v1.7 hg38 whole-genome SNVs",
+      "url": "https://kircherlab.bihealth.org/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+      "used_for_training": false,
+      "used_in_final": false,
+      "note": "Sparse fallback explored and stopped after VEP supplied complete CADD for returned records"
+    },
+    {
+      "name": "EVEE public explorer/API and Zenodo manifest",
+      "urls": [
+        "https://evee.goodfire.ai/umap.json",
+        "https://xix0d0o8le.execute-api.us-east-1.amazonaws.com/variants/{variant}",
+        "https://zenodo.org/api/records/19701997",
+        "https://github.com/goodfire-ai/evee-mcp",
+        "https://tdooms.github.io/research/evee/",
+        "https://www.biorxiv.org/content/10.64898/2026.04.10.717844v1.full.pdf",
+        "https://evee.goodfire.ai/config.js"
+      ],
+      "used_for_training": false,
+      "used_in_final": false,
+      "note": "Exploratory only; supervised pathogenicity outputs rejected because exact probe-training membership could not be established"
+    }
+  ],
+  "iterations": [
+    {
+      "iteration": 0,
+      "name": "profile_and_public_score_audit",
+      "validation": null
+    },
+    {
+      "iteration": 1,
+      "name": "CADD_phyloP_clinvar_calibrator",
+      "training_rows": 38939,
+      "excluded_exact_test": 2037,
+      "selected_model": "hist_gradient_boosting",
+      "validation": {
+        "auprc": 0.9671585041540468,
+        "auroc": 0.9670352906323774,
+        "brier": 0.06561882932876423,
+        "folds": [
+          {
+            "auprc": 0.9623746100180843,
+            "auroc": 0.9660038375640295,
+            "brier": 0.06795147265922269
+          },
+          {
+            "auprc": 0.9643243204579541,
+            "auroc": 0.9668984847372157,
+            "brier": 0.0668131340776495
+          },
+          {
+            "auprc": 0.9790714769494248,
+            "auroc": 0.9681978804676162,
+            "brier": 0.06525043387321978
+          },
+          {
+            "auprc": 0.9712709084843649,
+            "auroc": 0.9733687077884859,
+            "brier": 0.05828310995811765
+          },
+          {
+            "auprc": 0.9646956270619077,
+            "auroc": 0.9654896436001521,
+            "brier": 0.0698908027484293
+          }
+        ]
+      }
+    },
+    {
+      "iteration": 2,
+      "name": "EVEE_and_sparse_CADD_exploration_rejected",
+      "validation": null
+    },
+    {
+      "iteration": 3,
+      "name": "enriched_consequence_aware_clinvar_model",
+      "training_rows": 53024,
+      "validation": {
+        "auprc": 0.9998416335620053,
+        "auroc": 0.9997885008023633,
+        "brier": 0.003166151551282938
+      },
+      "validation_scheme": "5-fold GroupKFold by chromosome"
+    },
+    {
+      "iteration": 4,
+      "name": "final_source_agnostic_hybrid",
+      "validation": null,
+      "note": "TraitGym public chromosome-held-out ensembles plus enriched clinical model; source inferred only by exact membership in public TraitGym coordinate sets"
+    }
+  ],
+  "outputs": {
+    "answer.parquet": {
+      "rows": 44706,
+      "sha256": "29a56918d1bc7cea5386a94280d950893b01a6ecea10ce3efa152873cc47daf9"
+    },
+    "method.md": {
+      "sha256": "a2546060744729884cfaed8caa22d2f95b419831c76cb7982883532d2fcfe7de"
+    }
+  }
+}

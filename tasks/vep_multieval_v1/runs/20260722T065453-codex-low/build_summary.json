@@ -1,0 +1,12 @@
+{
+  "rows": 44706,
+  "gwas_ensemble_rows": 14753,
+  "clinical_rows": 29953,
+  "vep_rows": 44706,
+  "cadd_rows": 44706,
+  "alphamissense_rows": 7308,
+  "spliceai_rows": 34508,
+  "score_min": 1.111111209876552e-08,
+  "score_max": 0.9999998874648379,
+  "score_mean": 0.3927910644062052
+}

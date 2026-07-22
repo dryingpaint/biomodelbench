@@ -1,0 +1,10 @@
+{
+  "task": "vep_multieval_v1",
+  "run_id": "20260722T205103-codex-high-v2",
+  "function_call_id": "fc-01KY5SH9X7WZASZX74D5N87E38",
+  "returncode": null,
+  "duration_seconds": null,
+  "stdout_tail": null,
+  "stderr_tail": null,
+  "n_artifacts": null
+}

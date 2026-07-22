@@ -1,0 +1,132 @@
+{
+  "test_build": "GRCh38/hg38, 1-based",
+  "test_rows": 44706,
+  "test_unique_tuples": 44706,
+  "traitgym_cross_dataset_tuple_overlap": 27,
+  "label_leakage_policy": "Exact (chrom,pos,ref,alt) test tuples were excluded before any training label was accessed. TraitGym labels/PIP and EVEE ClinVar label/significance columns were never read.",
+  "resources": [
+    {
+      "name": "TraitGym complex-trait coordinates and released chromosome-held-out ensemble",
+      "urls": [
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/test.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/preds/all/CADD%2BGPN-MSA%2BBorzoi.LogisticRegression.chrom.parquet"
+      ],
+      "rows": 11400,
+      "exact_test_matches": 11400,
+      "labels_read": false
+    },
+    {
+      "name": "TraitGym Mendelian coordinates and released chromosome-held-out ensemble",
+      "urls": [
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/test.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/preds/all/CADD%2BGPN-MSA%2BBorzoi.LogisticRegression.chrom.parquet"
+      ],
+      "rows": 3380,
+      "exact_test_matches": 3380,
+      "labels_read": false
+    },
+    {
+      "name": "HuggingFaceBio ClinVar-VEP coding training/features",
+      "url": "https://huggingface.co/datasets/HuggingFaceBio/clinvar-vep/resolve/main/coding/clinvar_coding.parquet",
+      "rows_before_dedup": 39473,
+      "exact_test_tuples_removed": 2031,
+      "rows_after_dedup": 37442
+    },
+    {
+      "name": "HuggingFaceBio ClinVar-VEP noncoding training",
+      "url": "https://huggingface.co/datasets/HuggingFaceBio/clinvar-vep/resolve/main/non_coding/clinvar_non_coding.parquet",
+      "rows_before_dedup": 15258,
+      "exact_test_tuples_removed": 1146,
+      "rows_after_dedup": 14112,
+      "rows_after_CADD_availability_filter": 14092
+    },
+    {
+      "name": "CADD v1.7 official bulk scoring",
+      "urls": [
+        "https://cadd.gs.washington.edu/score",
+        "https://cadd.gs.washington.edu/upload",
+        "https://cadd.gs.washington.edu/api",
+        "https://cadd.gs.washington.edu/api/v1.0/GRCh38-v1.7/{chrom}:{pos}",
+        "https://cadd.bihealth.org/upload",
+        "https://cadd.bihealth.org/check_avail/GRCh38-v1.7_2171793a345d28bbb01ed22ce42dfe0b.tsv.gz",
+        "https://cadd.bihealth.org/check_avail/GRCh38-v1.7_anno_2171793a345d28bbb01ed22ce42dfe0b.tsv.gz",
+        "https://cadd.bihealth.org/check_avail/GRCh38-v1.7_702cfe272a88041d9b493a2423321953.tsv.gz",
+        "https://cadd.bihealth.org/check_avail/GRCh38-v1.7_c1067399647d34e9af5b111f340e74e3.tsv.gz"
+      ],
+      "test_rows_scored": 44689,
+      "test_rows_missing_no_alt": 17,
+      "coding_train_rows_scored": 37442,
+      "noncoding_train_rows_scored": 14092
+    },
+    {
+      "name": "CADD v1.6 fallback submission (not used)",
+      "url": "https://cadd.gs.washington.edu/check_avail/GRCh38-v1.6_94f2e8c01ecd8fbce89e6c42eaf94d8f.tsv.gz",
+      "used_in_final": false
+    },
+    {
+      "name": "UCSC AlphaMissense hg38 allele tracks",
+      "urls": [
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/alphaMissense/a.bw",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/alphaMissense/c.bw",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/alphaMissense/g.bw",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/alphaMissense/t.bw"
+      ],
+      "test_rows_annotated": 15912
+    },
+    {
+      "name": "EVEE released ClinVar covariance-probe table",
+      "urls": [
+        "https://zenodo.org/api/records/19701997",
+        "https://zenodo.org/api/records/19701997/files/manifest.json/content",
+        "https://zenodo.org/api/records/19701997/files/clean_shard_0.parquet/content",
+        "https://zenodo.org/api/records/19701997/files/clean_shard_1.parquet/content",
+        "https://zenodo.org/api/records/19701997/files/clean_shard_2.parquet/content",
+        "https://zenodo.org/api/records/19701997/files/clean_shard_3.parquet/content",
+        "https://zenodo.org/api/records/19701997/files/clean_shard_4.parquet/content"
+      ],
+      "rows": 4252870,
+      "columns_read": ["chrom", "pos", "ref", "alt", "pathogenicity", "consequence", "review_status"],
+      "label_or_significance_columns_read": false,
+      "exact_test_matches": 1930
+    },
+    {
+      "name": "Ensembl VEP REST consequence annotation",
+      "url": "https://rest.ensembl.org/vep/human/region",
+      "test_rows_submitted": 44706
+    },
+    {
+      "name": "MyVariant.info pilot (rejected for low coverage)",
+      "url": "https://myvariant.info/v1/variant",
+      "pilot_rows": 500,
+      "found_rows": 35,
+      "CADD_rows": 5,
+      "used_in_final": false
+    },
+    {
+      "name": "Discovery/code resources inspected",
+      "urls": [
+        "https://github.com/songlab-cal/TraitGym",
+        "https://github.com/goodfire-ai/evee-manuscript",
+        "https://evee.goodfire.ai/",
+        "https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/cadd1.7/a.bw",
+        "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/cactus241way/cactus241way.phyloP.bw",
+        "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.phastCons100way.bw"
+      ],
+      "used_in_final": false
+    }
+  ],
+  "software_added": [
+    {"package": "duckdb", "source": "Python Package Index", "purpose": "remote Parquet column projection"},
+    {"package": "pybbi", "source": "Python Package Index", "purpose": "remote bigWig feasibility pilot; not used in final scoring"}
+  ],
+  "iterations": [
+    {"name": "coding_CADD_legacy", "validation": "5-fold chromosome-held-out", "AUROC": 0.961956, "AUPRC": 0.963497, "Brier": 0.070218},
+    {"name": "coding_CADD_v1.7", "validation": "5-fold chromosome-held-out", "AUROC": 0.96411, "AUPRC": 0.96740, "Brier": 0.06941},
+    {"name": "coding_CADD_v1.7_AlphaMissense", "validation": "5-fold chromosome-held-out", "AUROC": 0.98029, "AUPRC": 0.98479, "Brier": 0.04986},
+    {"name": "coding_full_CADD_AlphaMissense_GPN_conservation", "validation": "5-fold chromosome-held-out", "AUROC": 0.98299, "AUPRC": 0.98663, "Brier": 0.04710},
+    {"name": "noncoding_CADD_v1.7", "validation": "5-fold chromosome-held-out", "AUROC": 0.974661, "AUPRC": 0.981815, "Brier": 0.045402},
+    {"name": "noncoding_CADD_v1.7_region", "validation": "5-fold chromosome-held-out", "AUROC": 0.979248, "AUPRC": 0.985531, "Brier": 0.037215},
+    {"name": "final_source_aware_hybrid", "validation": null, "note": "No hidden/test labels used; combines held-out public predictions and calibrated label-independent annotations."}
+  ]
+}

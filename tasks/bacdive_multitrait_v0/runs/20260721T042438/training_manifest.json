@@ -1,0 +1,15 @@
+{
+  "task": "bacdive_multitrait_v0",
+  "approach": "genome-based functional + compositional features -> per-target gradient boosting (LightGBM), family-holdout CV",
+  "data_sources": [
+    {"name": "NCBI RefSeq assembly summary", "url": "https://ftp.ncbi.nlm.nih.gov/genomes/refseq/assembly_summary_refseq.txt", "use": "resolve assembly_accession -> genome FTP path"},
+    {"name": "NCBI GenBank assembly summary", "url": "https://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt", "use": "resolve remaining accessions"},
+    {"name": "NCBI genome FTP (genomes/all)", "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF|GCA/*/*_genomic.fna.gz", "use": "download nucleotide assemblies for all train+test strains"},
+    {"name": "NCBI new_taxdump", "url": "https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz", "use": "map train taxid -> family/genus for family-holdout cross-validation only (never used as a feature)"},
+    {"name": "KEGG KOfam profiles", "url": "https://www.genome.jp/ftp/db/kofam/profiles.tar.gz", "use": "HMM profiles for KEGG orthologs (subset of ~650 pathway/morphology-relevant KOs)"},
+    {"name": "KEGG KOfam ko_list", "url": "https://www.genome.jp/ftp/db/kofam/ko_list.gz", "use": "per-KO adaptive score thresholds + KO definitions for keyword selection"},
+    {"name": "dbCAN CAZy HMMdb V13", "url": "https://pro.unl.edu/dbCAN2/download/Databases/V13/dbCAN-HMMdb-V13.txt", "use": "CAZyme family HMMs (subset of 201 GH/CBM/CE/AA families for cellulose/xylan/chitin degradation)"}
+  ],
+  "tools": ["pyrodigal 3.7.1 (gene calling)", "pyhmmer 0.12.1 (hmmsearch)", "lightgbm 4.6.0", "scikit-learn", "pandas/numpy"],
+  "notes": "Only assembly_accession + phylum used as given inputs for test. Organism name / species / genus / family were NOT used as prediction features; taxonomy was used solely to construct honest family-holdout CV folds on the training set."
+}

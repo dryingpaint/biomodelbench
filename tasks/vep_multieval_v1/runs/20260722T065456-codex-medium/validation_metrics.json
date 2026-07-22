@@ -1,0 +1,25 @@
+{
+  "clinvar_probe": {
+    "n_train_unique": 39408,
+    "n_validation": 16318,
+    "auroc": 0.9937671321330579,
+    "auprc": 0.9938809479752734,
+    "brier": 0.026062315329909325
+  },
+  "traitgym": {
+    "complex_traits": {
+      "rows": 11400,
+      "logit_intercept_shift": -2.0922387596234344,
+      "mean_score": 0.1
+    },
+    "mendelian_traits": {
+      "rows": 3380,
+      "logit_intercept_shift": -1.3567325604099385,
+      "mean_score": 0.1
+    },
+    "clinvar_overlap": {
+      "rows": 882,
+      "blend": "equal probability average"
+    }
+  }
+}

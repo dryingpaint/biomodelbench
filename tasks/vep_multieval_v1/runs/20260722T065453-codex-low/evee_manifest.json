@@ -1,0 +1,72 @@
+{
+  "shards": [
+    {
+      "index": 0,
+      "filename": "clean_shard_0.parquet",
+      "chromosomes": [
+        "chr1",
+        "chr12",
+        "chr22",
+        "chr4",
+        "chrY"
+      ],
+      "row_count": 825720,
+      "size_bytes": 6805237030
+    },
+    {
+      "index": 1,
+      "filename": "clean_shard_1.parquet",
+      "chromosomes": [
+        "chr10",
+        "chr2",
+        "chr20",
+        "chr5",
+        "chrM"
+      ],
+      "row_count": 826113,
+      "size_bytes": 6758853203
+    },
+    {
+      "index": 2,
+      "filename": "clean_shard_2.parquet",
+      "chromosomes": [
+        "chr15",
+        "chr17",
+        "chr18",
+        "chr6",
+        "chr7"
+      ],
+      "row_count": 871493,
+      "size_bytes": 7157309607
+    },
+    {
+      "index": 3,
+      "filename": "clean_shard_3.parquet",
+      "chromosomes": [
+        "chr11",
+        "chr16",
+        "chr21",
+        "chr8",
+        "chr9"
+      ],
+      "row_count": 849270,
+      "size_bytes": 6985087155
+    },
+    {
+      "index": 4,
+      "filename": "clean_shard_4.parquet",
+      "chromosomes": [
+        "chr13",
+        "chr14",
+        "chr19",
+        "chr3",
+        "chrX"
+      ],
+      "row_count": 880274,
+      "size_bytes": 7303028172
+    }
+  ],
+  "n_shards": 5,
+  "input": "/mnt/data/artifacts/public/variant-viewer/builds/v5/clean.parquet",
+  "chrom_col": "chrom"
+}

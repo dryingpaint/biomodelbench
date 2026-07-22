@@ -1,0 +1,45 @@
+id: vep_multieval_v1
+title: Variant-effect prediction across 3 partitions (TraitGym complex + Mendelian + ClinVar), SOTA-target
+modality: dna_variant
+compute_tier: T2
+headline_metric: mean_auprc_across_partitions
+description: |
+  Predict a single functional-impact score in [0, 1] for each variant
+  in a mixed test set drawn from three biological questions:
+  (1) GWAS-fine-mapped causal SNPs for common complex traits (TraitGym
+  complex_traits_matched_9); (2) GWAS-fine-mapped causal SNPs for rare
+  Mendelian traits (TraitGym mendelian_traits_matched_9); (3) clinical
+  pathogenic vs. benign classification (2-star+ ClinVar). The agent
+  gets only (chrom, pos, ref, alt) with no source flag — one scoring
+  function must rank all three partitions well.
+
+  v1 vs v0 differences:
+  - v1 adds TraitGym Mendelian as a third hidden partition.
+  - v1 explicitly permits the agent to compile its own labeled train
+    set from public sources (v0 signaled zero-shot by shipping no
+    train partition).
+  - v1 provides a comprehensive SOTA table with named models across
+    both zero-shot and trained categories, so the agent can position
+    against the leaderboard.
+  - v1 runs on H100 (80 GB VRAM) instead of A10G — the agent can now
+    load Enformer / Borzoi / Evo-2 / ESM-2 15B locally.
+answer_file: answer.parquet
+data_files:
+  - bundle/test.parquet
+  - bundle/prompt.md
+wall_clock_hours: 10
+sources:
+  traitgym_complex: songlab/TraitGym complex_traits_matched_9 (Benegas et al. 2025)
+  traitgym_mendelian: songlab/TraitGym mendelian_traits_matched_9 (Benegas et al. 2025)
+  clinvar: NCBI ClinVar 2-star+ P/LP vs B/LB (GRCh38 VCF)
+anti_leak:
+  policy: |
+    The shipped bundle contains only (chrom, pos, ref, alt) for the test set;
+    labels and source flags live in hidden/. Data-leakage prevention is the
+    agent's responsibility when compiling self-sourced training data (build
+    the (chrom, pos, ref, alt) tuple set from test.parquet and use it as an
+    exclusion filter against any candidate training source, LiftOver to hg38
+    first if needed).
+future_partitions:
+  mpra: Kircher 2019 K562 MPRA or Findlay 2018 BRCA1 SGE — regulatory / coding
+        DMS panels that measure true functional activity. Add as v2 partitions.

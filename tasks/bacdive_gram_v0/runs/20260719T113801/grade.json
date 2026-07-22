@@ -1,0 +1,26 @@
+{
+  "test_variants_total": 393,
+  "test_variants_scored": 393,
+  "coverage": 1.0,
+  "positive_rate": 0.34096692111959287,
+  "auprc": 0.994801502911312,
+  "auroc": 0.995505099982712,
+  "brier": 0.009281976405411755,
+  "reference_baselines": {
+    "class_prior (always Gram-)": {
+      "auprc": null,
+      "auroc": 0.5,
+      "note": "trivial baseline"
+    },
+    "codon-usage_+_tetranucleotide": {
+      "auprc": null,
+      "auroc": 0.85,
+      "note": "field-standard rough bar"
+    },
+    "protein-family-profile_classifier": {
+      "auprc": null,
+      "auroc": 0.95,
+      "note": "well-tuned; drops on family-holdout"
+    }
+  }
+}

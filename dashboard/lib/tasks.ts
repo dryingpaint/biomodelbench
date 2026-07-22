@@ -31,6 +31,8 @@ export interface RunSummary {
   totalCostUsd?: number | null;
   numTurns?: number | null;
   durationSeconds?: number | null;
+  agent?: string | null;          // "claude-code" | "codex" | "unknown"
+  reasoningEffort?: string | null; // "none" | "low" | "medium" | "high" | null (claude has no equivalent)
 }
 
 export interface TaskSummary {
@@ -176,6 +178,66 @@ export function listRunIds(taskId: string): string[] {
     .sort();
 }
 
+/** Peek at the first line of agent_log.jsonl to detect the agent framework
+ * and (for codex) the reasoning effort setting. Falls back to run_id suffix
+ * heuristics when the log is empty or missing. */
+function detectAgentInfo(
+  taskId: string,
+  runId: string,
+  primaryModel: string | null,
+): { agent: string | null; reasoningEffort: string | null } {
+  const logPath = path.join(TASKS_DIR, taskId, "runs", runId, "agent_log.jsonl");
+  let agent: string | null = null;
+  let reasoning: string | null = null;
+
+  // 1. First-line inspection of agent_log.jsonl
+  try {
+    if (fs.existsSync(logPath)) {
+      const fd = fs.openSync(logPath, "r");
+      const buf = Buffer.alloc(2048);
+      const n = fs.readSync(fd, buf, 0, buf.length, 0);
+      fs.closeSync(fd);
+      const firstLine = buf.slice(0, n).toString("utf-8").split("\n")[0];
+      if (firstLine.trim().length) {
+        const obj = JSON.parse(firstLine) as Record<string, unknown>;
+        const t = obj["type"] as string | undefined;
+        // Codex emits "thread.started" as its opening event
+        if (t === "thread.started" || t?.startsWith("thread.")) {
+          agent = "codex";
+          // Codex's reasoning_effort is on the thread.started event itself
+          const re = obj["reasoning_effort"] as string | undefined;
+          if (re) reasoning = re;
+        } else if (t === "system" && obj["subtype"] === "init") {
+          // Claude-code's init event
+          agent = "claude-code";
+        }
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 2. Fall back to run_id suffix inference
+  if (!agent) {
+    if (runId.includes("codex")) agent = "codex";
+    else if (runId.includes("claude")) agent = "claude-code";
+  }
+
+  // 3. Fall back to primary_model prefix
+  if (!agent && primaryModel) {
+    if (primaryModel.startsWith("claude")) agent = "claude-code";
+    else if (primaryModel.startsWith("gpt") || primaryModel.startsWith("o")) agent = "codex";
+  }
+
+  // 4. Reasoning effort inference from run_id suffix if we didn't get it from the log
+  if (!reasoning && agent === "codex") {
+    if (runId.endsWith("-low")) reasoning = "low";
+    else if (runId.endsWith("-medium")) reasoning = "medium";
+    else if (runId.endsWith("-high")) reasoning = "high";
+    else reasoning = "default";
+  }
+
+  return { agent, reasoningEffort: reasoning };
+}
+
 export function loadRunSummary(taskId: string, runId: string): RunSummary {
   const dir = path.join(TASKS_DIR, taskId, "runs", runId);
   const grade = readJsonIfExists<Record<string, unknown>>(path.join(dir, "grade.json"));
@@ -185,6 +247,8 @@ export function loadRunSummary(taskId: string, runId: string): RunSummary {
     | { name: string; baseline_auprc: number; delta_auprc: number }
     | undefined;
   const durationMs = meta?.["duration_ms"] as number | null | undefined;
+  const primaryModel = (meta?.["primary_model"] as string | null | undefined) ?? null;
+  const { agent, reasoningEffort } = detectAgentInfo(taskId, runId, primaryModel);
   return {
     runId,
     hasGrade: grade !== undefined,
@@ -194,10 +258,166 @@ export function loadRunSummary(taskId: string, runId: string): RunSummary {
     brier: (grade?.["brier"] as number | null | undefined) ?? null,
     coverage: (grade?.["coverage"] as number | null | undefined) ?? null,
     gapVsBestBaseline: gap,
-    primaryModel: (meta?.["primary_model"] as string | null | undefined) ?? null,
+    primaryModel,
     totalCostUsd: (meta?.["total_cost_usd"] as number | null | undefined) ?? null,
     numTurns: (meta?.["num_turns"] as number | null | undefined) ?? null,
     durationSeconds: typeof durationMs === "number" ? durationMs / 1000 : null,
+    agent,
+    reasoningEffort,
+  };
+}
+
+export interface TraceEvent {
+  kind: "session_start" | "text" | "tool_call" | "tool_result" | "result" | "retry";
+  session_id?: string;
+  session_num?: number;   // 1-based sequential
+  model?: string;
+  summary: string;        // one-line summary
+  detail?: string;        // optional expanded detail (bash cmd, tool inputs, etc)
+  cost_usd?: number;
+  num_turns?: number;
+  exit_code?: number;
+}
+
+export interface TraceSummary {
+  agent: "claude-code" | "codex" | "unknown";
+  total_events: number;
+  session_count: number;
+  api_retry_count: number;
+  tool_call_count: number;
+  first_events: TraceEvent[]; // capped to 200 to keep pages light
+}
+
+/** Parse agent_log.jsonl into a bounded trace summary. Streams the file so
+ * we don't load 10 MB+ into memory. Returns null if no log exists. */
+export function loadTraceSummary(taskId: string, runId: string): TraceSummary | null {
+  const logPath = path.join(TASKS_DIR, taskId, "runs", runId, "agent_log.jsonl");
+  if (!fs.existsSync(logPath)) return null;
+  const raw = fs.readFileSync(logPath, "utf-8");
+  const lines = raw.split("\n").filter((l) => l.trim());
+
+  let agent: TraceSummary["agent"] = "unknown";
+  let sessionCount = 0;
+  let apiRetryCount = 0;
+  let toolCallCount = 0;
+  const events: TraceEvent[] = [];
+  const MAX = 200;
+
+  // Detect agent from first event
+  if (lines.length > 0) {
+    try {
+      const first = JSON.parse(lines[0]) as Record<string, unknown>;
+      const t = first["type"] as string | undefined;
+      if (t === "system" && first["subtype"] === "init") agent = "claude-code";
+      else if (t === "thread.started" || t?.startsWith("thread.")) agent = "codex";
+    } catch { /* ignore */ }
+  }
+
+  for (const line of lines) {
+    let obj: Record<string, unknown>;
+    try { obj = JSON.parse(line) as Record<string, unknown>; } catch { continue; }
+    const t = obj["type"] as string | undefined;
+    const s = obj["subtype"] as string | undefined;
+
+    if (agent === "claude-code") {
+      if (t === "system" && s === "init") {
+        sessionCount++;
+        if (events.length < MAX) {
+          events.push({
+            kind: "session_start",
+            session_num: sessionCount,
+            session_id: (obj["session_id"] as string | undefined) ?? undefined,
+            model: (obj["model"] as string | undefined) ?? undefined,
+            summary: `Session ${sessionCount} started (model=${obj["model"] ?? "?"})`,
+          });
+        }
+      } else if (t === "system" && s === "api_retry") {
+        apiRetryCount++;
+      } else if (t === "assistant") {
+        const msg = obj["message"] as Record<string, unknown> | undefined;
+        const content = Array.isArray(msg?.["content"]) ? (msg!["content"] as Array<Record<string, unknown>>) : [];
+        for (const block of content) {
+          const bt = block["type"] as string | undefined;
+          if (bt === "text" && events.length < MAX) {
+            const text = (block["text"] as string | undefined) ?? "";
+            events.push({ kind: "text", summary: text.slice(0, 200) + (text.length > 200 ? "…" : "") });
+          } else if (bt === "tool_use") {
+            toolCallCount++;
+            if (events.length < MAX) {
+              const name = (block["name"] as string | undefined) ?? "?";
+              const input = block["input"];
+              events.push({
+                kind: "tool_call",
+                summary: `${name}(${JSON.stringify(input).slice(0, 160)}${JSON.stringify(input).length > 160 ? "…" : ""})`,
+              });
+            }
+          }
+        }
+      } else if (t === "user") {
+        const msg = obj["message"] as Record<string, unknown> | undefined;
+        const content = Array.isArray(msg?.["content"]) ? (msg!["content"] as Array<Record<string, unknown>>) : [];
+        for (const block of content) {
+          if (block["type"] === "tool_result" && events.length < MAX) {
+            const c = block["content"];
+            const text = typeof c === "string" ? c : Array.isArray(c) ? JSON.stringify(c).slice(0, 200) : "";
+            events.push({ kind: "tool_result", summary: text.slice(0, 200) });
+          }
+        }
+      } else if (t === "result") {
+        if (events.length < MAX) {
+          events.push({
+            kind: "result",
+            summary: `Session complete: turns=${obj["num_turns"] ?? "?"} cost=$${(obj["total_cost_usd"] as number | undefined)?.toFixed(4) ?? "?"}`,
+            cost_usd: obj["total_cost_usd"] as number | undefined,
+            num_turns: obj["num_turns"] as number | undefined,
+          });
+        }
+      }
+    } else if (agent === "codex") {
+      if (t === "thread.started") {
+        sessionCount++;
+        if (events.length < MAX) {
+          events.push({
+            kind: "session_start",
+            session_num: sessionCount,
+            session_id: (obj["thread_id"] as string | undefined) ?? undefined,
+            summary: `Thread started (id=${obj["thread_id"] ?? "?"})`,
+          });
+        }
+      } else if (t === "item.completed") {
+        const item = obj["item"] as Record<string, unknown> | undefined;
+        const itype = item?.["type"] as string | undefined;
+        if (itype === "agent_message" && events.length < MAX) {
+          const text = (item?.["text"] as string | undefined) ?? "";
+          events.push({ kind: "text", summary: text.slice(0, 200) + (text.length > 200 ? "…" : "") });
+        } else if (itype === "command_execution") {
+          toolCallCount++;
+          if (events.length < MAX) {
+            const cmd = (item?.["command"] as string | undefined) ?? "";
+            const exit = item?.["exit_code"] as number | undefined;
+            events.push({
+              kind: "tool_call",
+              summary: `bash: ${cmd.slice(0, 160)}${cmd.length > 160 ? "…" : ""}`,
+              exit_code: exit,
+              detail: (item?.["aggregated_output"] as string | undefined)?.slice(0, 500),
+            });
+          }
+        } else if (itype === "web_search" && events.length < MAX) {
+          toolCallCount++;
+          const q = (item?.["query"] as string | undefined) ?? "";
+          events.push({ kind: "tool_call", summary: `web_search: ${q.slice(0, 160)}` });
+        }
+      }
+    }
+  }
+
+  return {
+    agent,
+    total_events: lines.length,
+    session_count: sessionCount,
+    api_retry_count: apiRetryCount,
+    tool_call_count: toolCallCount,
+    first_events: events,
   };
 }
 

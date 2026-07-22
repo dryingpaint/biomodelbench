@@ -1,0 +1,132 @@
+{
+  "created_utc": "2026-07-22",
+  "test_tuple_count": 44706,
+  "allele_defined_snv_count": 44689,
+  "missing_alt_sentinel_count": 17,
+  "exclusion_key": ["chrom", "pos", "ref", "alt"],
+  "sources": [
+    {
+      "dataset": "songlab/clinvar",
+      "url": "https://huggingface.co/datasets/songlab/clinvar/resolve/main/test.parquet",
+      "purpose": "labeled clinical training plus released zero-shot annotations",
+      "rows": 40976,
+      "exact_test_tuples_excluded": 2037,
+      "training_rows_after_dedup": 38939
+    },
+    {
+      "dataset": "UKBB fine-mapped non-coding TraitGym",
+      "url": "https://huggingface.co/datasets/songlab/ukb_finemapped_nc_traitgym",
+      "purpose": "released label-free model prediction vectors; labels excluded",
+      "rows": 11400,
+      "exact_test_tuples_excluded_from_labels": 11400,
+      "training_rows_after_dedup": 0
+    },
+    {
+      "dataset": "OMIM TraitGym",
+      "url": "https://huggingface.co/datasets/songlab/omim_traitgym",
+      "purpose": "released label-free model prediction vectors; labels excluded",
+      "rows": 3380,
+      "exact_test_tuples_excluded_from_labels": 3380,
+      "training_rows_after_dedup": 0
+    },
+    {
+      "dataset": "bolinas-dna/evals_traitgym_complex",
+      "url": "https://huggingface.co/datasets/bolinas-dna/evals_traitgym_complex",
+      "purpose": "overlap audit only; no labels used",
+      "rows": 11400,
+      "exact_test_tuples_excluded": 11400,
+      "training_rows_after_dedup": 0
+    },
+    {
+      "dataset": "bolinas-dna/evals_traitgym_mendelian",
+      "url": "https://huggingface.co/datasets/bolinas-dna/evals_traitgym_mendelian",
+      "purpose": "overlap audit only; no labels used",
+      "rows": 3380,
+      "exact_test_tuples_excluded": 3380,
+      "training_rows_after_dedup": 0
+    },
+    {
+      "dataset": "CADD v1.7 GRCh38 whole-genome SNVs",
+      "url": "https://kircherlab.bihealth.org/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+      "alternate_url": "https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+      "web_api_url": "https://cadd.bihealth.org/upload",
+      "purpose": "zero-shot raw and PHRED scores for test SNVs",
+      "exact_allele_matches": 44689,
+      "position_level_sentinel_lookups": 17,
+      "labeled_training_rows": 0
+    },
+    {
+      "dataset": "GPN-MSA hg38 genome-wide scores",
+      "url": "https://huggingface.co/datasets/songlab/gpn-msa-hg38-scores/resolve/main/scores.tsv.bgz",
+      "purpose": "zero-shot allele-effect scores for test SNVs",
+      "exact_allele_matches": 44689,
+      "position_level_sentinel_lookups": 17,
+      "labeled_training_rows": 0
+    },
+    {
+      "dataset": "AlphaMissense hg38 v2",
+      "url": "https://zenodo.org/records/8360242/files/AlphaMissense_hg38.tsv.gz?download=1",
+      "record_url": "https://zenodo.org/records/8360242",
+      "rows_scanned": 71697560,
+      "unique_matches_test_plus_training": 41973,
+      "test_matches": 7693,
+      "labeled_training_rows": 0
+    },
+    {
+      "dataset": "Ensembl REST VEP GRCh38",
+      "url": "https://rest.ensembl.org/vep/homo_sapiens/region",
+      "purpose": "consequence, SIFT/PolyPhen, and gnomAD frequency annotations; clinical assertions explicitly discarded",
+      "requested_test_rows": 29953,
+      "annotated_test_rows": 29936,
+      "unannotated_missing_alt_sentinels": 17,
+      "labeled_training_rows": 0
+    },
+    {
+      "dataset": "gnomAD genomes v4.1 sites",
+      "url": "https://gnomad-public-us-east-1.s3.amazonaws.com/release/4.1/vcf/genomes/gnomad.genomes.v4.1.sites.chr{chrom}.vcf.bgz",
+      "purpose": "population-frequency lookup attempted; final frequency feature obtained via Ensembl VEP",
+      "labeled_training_rows": 0
+    },
+    {
+      "dataset": "UCSC 100-way conservation tracks",
+      "url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/hg38.100way.phyloP100way.bw",
+      "additional_url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.phastCons100way.bw",
+      "purpose": "remote access tested; not used in final model",
+      "labeled_training_rows": 0
+    }
+  ],
+  "iterations": [
+    {
+      "name": "logistic_core",
+      "split": "chromosome holdout 2,5,8,11,14,17,20",
+      "fit_rows": 26357,
+      "validation_rows": 12582,
+      "AUPRC": 0.9872504704,
+      "AUROC": 0.9848349432,
+      "Brier": 0.0449051439
+    },
+    {
+      "name": "histgb_core",
+      "split": "same chromosome holdout",
+      "fit_rows": 26357,
+      "validation_rows": 12582,
+      "AUPRC": 0.9873960115,
+      "AUROC": 0.9851984550,
+      "Brier": 0.0447052705
+    },
+    {
+      "name": "logistic_full_conservation",
+      "split": "same chromosome holdout",
+      "fit_rows": 26357,
+      "validation_rows": 12582,
+      "AUPRC": 0.9881496172,
+      "AUROC": 0.9856545938,
+      "Brier": 0.0436214195
+    },
+    {
+      "name": "final_transfer_ensemble",
+      "validation": null,
+      "note": "Refit logistic probes on all 38,939 allowed clinical rows; label-free rank ensemble for TraitGym partitions. No exact test label was used."
+    }
+  ]
+}

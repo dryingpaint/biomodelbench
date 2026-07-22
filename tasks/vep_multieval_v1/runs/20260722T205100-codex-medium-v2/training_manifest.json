@@ -1,0 +1,87 @@
+{
+  "created_utc": "2026-07-22",
+  "test_exclusion_key": ["chrom", "pos", "ref", "alt"],
+  "sources": [
+    {
+      "name": "CADD v1.7 GRCh38 API",
+      "urls": [
+        "https://cadd.gs.washington.edu/api/v1.0/GRCh38-v1.7/",
+        "https://cadd.bihealth.org/api/v1.0/GRCh38-v1.7/",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/cadd1.7/a.bw",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/cadd1.7/c.bw",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/cadd1.7/g.bw",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/cadd1.7/t.bw"
+      ],
+      "purpose": "test-time zero-shot raw and PHRED annotation",
+      "labels_used": false
+    },
+    {
+      "name": "UCSC AlphaMissense hg38 allele tracks",
+      "urls": [
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/alphaMissense/a.bw",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/alphaMissense/c.bw",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/alphaMissense/g.bw",
+        "https://hgdownload.soe.ucsc.edu/gbdb/hg38/alphaMissense/t.bw"
+      ],
+      "purpose": "allele-specific zero-shot missense annotation",
+      "labels_used": false
+    },
+    {
+      "name": "NCBI ClinVar GRCh38 weekly VCF, 2026-07-21",
+      "urls": [
+        "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz",
+        "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz.tbi"
+      ],
+      "purpose": "leakage-filtered calibration labels and molecular consequence",
+      "dedup": {
+        "missense_eligible_before": 223433,
+        "missense_exact_test_removed": 8070,
+        "missense_missing_score_removed": 12504,
+        "missense_final": 202859,
+        "all_snv_eligible_before": 1482054,
+        "all_snv_exact_test_removed": 30656,
+        "all_snv_final": 1451398,
+        "cadd_calibration_stratified_sample": 13305
+      }
+    },
+    {
+      "name": "songlab/TraitGym",
+      "urls": [
+        "https://huggingface.co/datasets/songlab/TraitGym",
+        "https://huggingface.co/api/datasets/songlab/TraitGym/tree/main/complex_traits_matched_9?recursive=true&expand=false&limit=1000",
+        "https://huggingface.co/api/datasets/songlab/TraitGym/tree/main/mendelian_traits_matched_9?recursive=true&expand=false&limit=1000"
+      ],
+      "configs": ["complex_traits_matched_9", "mendelian_traits_matched_9"],
+      "files_touched_each_config": [
+        "test.parquet",
+        "preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "preds/all/CADD.plus.RawScore.parquet",
+        "preds/all/GPN-MSA_absLLR.plus.score.parquet",
+        "preds/all/Borzoi_L2_L2.plus.all.parquet",
+        "preds/all/phastCons-43p.plus.score.parquet",
+        "preds/all/phyloP-241m.plus.score.parquet"
+      ],
+      "purpose": "coordinate matching and label-free zero-shot annotations",
+      "labels_used": false,
+      "trained_LR_prediction_used": false
+    },
+    {
+      "name": "Exploratory APIs and tracks not used in final model",
+      "urls": [
+        "https://myvariant.info/v1/variant",
+        "https://rest.ensembl.org/vep/human/region",
+        "https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bigWigToBedGraph",
+        "https://zenodo.org/records/19701997",
+        "https://github.com/goodfire-ai/evee-manuscript"
+      ],
+      "labels_used": false
+    }
+  ],
+  "iterations": [
+    {"iteration": 1, "method": "MyVariant exploratory annotation", "status": "discarded_low_coverage", "validation": null},
+    {"iteration": 2, "method": "CADD plus consequence baseline", "status": "superseded", "validation": null},
+    {"iteration": 3, "method": "Add zero-shot TraitGym rank ensemble", "status": "retained", "validation": null},
+    {"iteration": 4, "method": "Add leakage-safe AlphaMissense calibration and conservative consequence priors", "status": "superseded_in_part", "validation": {"split": "ClinVar chromosomes 19-22,X", "n": 37526, "auroc": 0.9614245905009449, "auprc": 0.9343103771613556, "brier": 0.07240013496929594}},
+    {"iteration": 5, "method": "Replace hand-set non-missense mappings with leakage-safe consequence-specific CADD calibrators; retain AlphaMissense blend", "status": "final", "validation": {"split": "ClinVar chromosomes 19-22,X", "sample_n": 13305, "per_consequence_auroc": {"intronic": 0.9092838196286473, "missense": 0.920517913070048, "nonsense": 0.802048611111111, "other": 0.8790772719344148, "splice": 0.7888305071252288, "synonymous": 0.8742630094847477, "utr": 0.8651635720601237}}}
+  ]
+}

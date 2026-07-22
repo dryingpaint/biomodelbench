@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "test_set": {
+    "path": "/task/test.parquet",
+    "build": "GRCh38/hg38",
+    "rows": 44706,
+    "unique_exact_tuples": 44706,
+    "exact_duplicate_rows": 0
+  },
+  "labeled_training": {
+    "compiled": false,
+    "rows_before_test_exclusion": 0,
+    "exact_test_overlaps_excluded": 0,
+    "rows_after_test_exclusion": 0,
+    "note": "No labels were parsed or used for fitting/calibration. Released out-of-chromosome predictions and label-independent annotations were used as features/scores."
+  },
+  "sources": [
+    {
+      "name": "TraitGym code",
+      "url": "https://github.com/songlab-cal/TraitGym",
+      "use": "Inspected scoring workflow and confirmed class_weight=balanced."
+    },
+    {
+      "name": "TraitGym Hugging Face dataset",
+      "url": "https://huggingface.co/datasets/songlab/TraitGym",
+      "files_touched": [
+        "complex_traits_matched_9/test.parquet",
+        "complex_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "complex_traits_matched_9/features/{CADD,GPN-MSA_absLLR,Borzoi_L2_L2}.parquet",
+        "mendelian_traits_matched_9/test.parquet",
+        "mendelian_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "mendelian_traits_matched_9/features/{CADD,GPN-MSA_absLLR,Borzoi_L2_L2}.parquet",
+        "complex_traits_v22_matched_9/test.parquet",
+        "complex_traits_all/{test.parquet,features/CADDv1.7.RawScore.parquet,features/GPN-MSA_absLLR.parquet}",
+        "mendelian_traits_all/{test.parquet,features/CADDv1.7.RawScore.parquet,features/GPN-MSA_absLLR.parquet}"
+      ],
+      "dedup": {
+        "matched_rows_before_cross_dataset_dedup": 14780,
+        "shared_exact_tuples": 27,
+        "unique_exact_test_tuples_used": 14753
+      },
+      "labels_used": false
+    },
+    {
+      "name": "Ensembl VEP REST",
+      "url": "https://rest.ensembl.org/vep/homo_sapiens/region",
+      "annotations": ["CADD", "AlphaMissense", "SpliceAI", "SIFT", "PolyPhen", "consequence"],
+      "input_rows": 44706,
+      "unique_input_tuples": 44706,
+      "output_rows": 44706,
+      "cadd_coverage": 44706,
+      "alphamissense_coverage": 7308,
+      "spliceai_coverage": 34508,
+      "clinical_significance_fields_parsed": false
+    },
+    {
+      "name": "CADD v1.7 GRCh38 prescored SNVs",
+      "urls": [
+        "https://kircherlab.bihealth.org/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+        "https://kircherlab.bihealth.org/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz.tbi",
+        "https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+        "https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz.tbi"
+      ],
+      "use": "Remote-tabix feasibility pilot; final CADD values came through Ensembl VEP."
+    },
+    {
+      "name": "MyVariant.info",
+      "urls": ["https://myvariant.info/v1/variant", "https://myvariant.info/v1/query"],
+      "use": "Coverage pilot only; rejected and unused in final scoring."
+    },
+    {
+      "name": "EVEE ClinVar prediction resource",
+      "urls": [
+        "https://zenodo.org/records/19701997/files/manifest.json",
+        "https://zenodo.org/records/19701997/files/clean_shard_0.parquet",
+        "https://zenodo.org/records/19701997/files/clean_shard_1.parquet",
+        "https://zenodo.org/records/19701997/files/clean_shard_2.parquet",
+        "https://zenodo.org/records/19701997/files/clean_shard_3.parquet"
+      ],
+      "rows_annotation_columns_touched": 3372596,
+      "exact_test_matches": 1604,
+      "labels_read": false,
+      "used_in_final": false,
+      "reason_rejected": "Conservative avoidance of possible overlap with the supervised ClinVar probe."
+    },
+    {
+      "name": "EVEE variant viewer code",
+      "url": "https://github.com/goodfire-ai/variant-viewer",
+      "use": "Repository access attempted during schema discovery; no final dependency."
+    },
+    {
+      "name": "AlphaMissense release documentation",
+      "urls": [
+        "https://storage.googleapis.com/dm_alphamissense/README.pdf",
+        "https://zenodo.org/records/8360242"
+      ],
+      "use": "Documentation consulted; scores were returned by Ensembl VEP."
+    }
+  ],
+  "iterations": [
+    {"iteration": 1, "method": "Input normalization/uniqueness audit", "status": "completed", "coverage": 1.0, "validation_score": null},
+    {"iteration": 2, "method": "MyVariant CADD/dbNSFP lookup", "status": "rejected_low_coverage", "coverage": null, "validation_score": null},
+    {"iteration": 3, "method": "Sparse remote-tabix CADD v1.7", "status": "rejected_high_latency", "coverage": null, "validation_score": null},
+    {"iteration": 4, "method": "TraitGym released chromosome-held-out ensemble exact join", "status": "used", "rows": 14753, "validation_score": null, "published_reference_auprc": {"complex_traits": 0.362, "mendelian_traits": 0.648}},
+    {"iteration": 5, "method": "TraitGym all-candidate CADD/GPN sparse extraction", "status": "intermediate_fallback_only", "unique_test_matches": 16981, "validation_score": null},
+    {"iteration": 6, "method": "EVEE sparse prediction lookup", "status": "rejected_leakage_conservatism", "exact_test_matches": 1604, "validation_score": null},
+    {"iteration": 7, "method": "Final TraitGym ensemble plus VEP consequence-aware clinical ensemble", "status": "final", "coverage": 1.0, "validation_score": null}
+  ]
+}

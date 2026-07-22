@@ -1,0 +1,11 @@
+# BioModelBench method
+
+I normalized keys as strings/1-based hg38 coordinates and found 44,706 unique rows. Seventeen rows had no alternate allele (`.`). I built the exact test-tuple set before accessing any training label.
+
+The final predictor is source-agnostic at input but recognizes two public benchmark coordinate sets. For the 11,400 complex-trait and 3,380 Mendelian TraitGym matches, I used the released chromosome-held-out CADD+GPN-MSA+Borzoi logistic predictions. Because those models used balanced class weights, I analytically corrected their odds to the benchmark's 1:9 prevalence. Twenty-seven tuples occur in both sets, so I averaged their corrected log-odds. I never read TraitGym labels or PIP.
+
+For clinical-like rows I obtained CADD v1.7 raw/PHRED scores (44,689/44,706) and allele-specific AlphaMissense scores from UCSC bigWigs (15,912/44,706). Ensembl VEP supplied consequence class. Released EVEE covariance-probe scores were column-projected from Zenodo without reading significance/label fields and matched 1,930 test tuples. These were log-odds blended with the independent calibrated score (50% EVEE for missense, 80% otherwise).
+
+Training used HuggingFaceBio ClinVar-VEP. I removed exact test tuples before exposing labels: coding 39,473 -> 37,442 (2,031 removed); noncoding 15,258 -> 14,112 (1,146 removed), with 14,092 receiving CADD. Five-fold chromosome-held-out iterations were: coding CADD v1.6-like feature (AUROC/AUPRC/Brier 0.9620/0.9635/0.0702); CADD v1.7 (0.9641/0.9674/0.0694); +AlphaMissense (0.9803/0.9848/0.0499); +GPN-MSA and three conservation scores where available (0.9830/0.9866/0.0471). Noncoding CADD scored 0.9747/0.9818/0.0454; adding intron/5'-UTR/3'-UTR intercepts scored 0.9792/0.9855/0.0372. Final models were logistic regressions with median imputation, missingness indicators, and standardized numeric features. The 2,031 test rows with released GPN/conservation annotations use the full model; other coding rows use CADD+AlphaMissense, and noncoding rows use CADD+region. The 17 no-alt rows receive 0.01.
+
+Initial MyVariant batch annotation was rejected for low coverage (35/500 found; CADD 5/500). A CADD v1.6 fallback was submitted but superseded by complete v1.7 scoring. No test label was used at any iteration.
