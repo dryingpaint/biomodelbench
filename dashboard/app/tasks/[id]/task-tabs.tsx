@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Markdown from "@/components/Markdown";
 import type { CrossTaskRunRow, BaselineRow } from "@/lib/tasks";
 
@@ -22,6 +22,7 @@ export interface UnifiedRow {
   durationSeconds?: number | null;
   totalCostUsd?: number | null;
   note?: string;
+  methodSummary?: string | null; // one-paragraph agent's-own methodology
 }
 
 type SortKey =
@@ -76,6 +77,7 @@ export default function TaskTabs({
         auroc: r.auroc,
         durationSeconds: r.durationSeconds,
         totalCostUsd: r.totalCostUsd,
+        methodSummary: r.methodSummary,
       });
     }
     for (const b of baselines) {
@@ -215,9 +217,9 @@ export default function TaskTabs({
                   const basePath = (typeof window !== "undefined" &&
                     (window as unknown as { __NEXT_DATA__?: { assetPrefix?: string } }).__NEXT_DATA__?.assetPrefix) || "";
                   return (
+                    <React.Fragment key={`${r.kind}-${r.method}-${r.partition ?? "_"}-${i}`}>
                     <tr
-                      key={`${r.kind}-${r.method}-${r.partition ?? "_"}-${i}`}
-                      className={`border-b border-stone-100 last:border-b-0 ${bgClass}`}
+                      className={`${bgClass} ${r.methodSummary ? "" : "border-b border-stone-100 last:border-b-0"}`}
                       onClick={() => linkTarget && (window.location.href = `${basePath}${linkTarget}`)}
                     >
                       <td className="px-4 py-2">
@@ -266,6 +268,25 @@ export default function TaskTabs({
                           : "—"}
                       </td>
                     </tr>
+                    {r.methodSummary && (
+                      <tr className="border-b border-stone-100 last:border-b-0 bg-stone-50/40">
+                        <td colSpan={2}></td>
+                        <td colSpan={6} className="px-4 pb-3 pt-0 text-xs text-stone-600 italic leading-relaxed">
+                          <span className="uppercase tracking-wider not-italic font-semibold text-stone-400 mr-2">methodology:</span>
+                          {r.methodSummary}
+                          {linkTarget && (
+                            <Link
+                              href={linkTarget}
+                              className="text-blue-700 hover:underline ml-2 not-italic font-medium"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              read full method.md →
+                            </Link>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
                 {sorted.length === 0 && (

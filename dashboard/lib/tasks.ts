@@ -33,6 +33,7 @@ export interface RunSummary {
   durationSeconds?: number | null;
   agent?: string | null;          // "claude-code" | "codex" | "unknown"
   reasoningEffort?: string | null; // "none" | "low" | "medium" | "high" | null (claude has no equivalent)
+  methodSummary?: string | null;   // first paragraph / summary line of method.md
 }
 
 export interface TaskSummary {
@@ -324,11 +325,47 @@ function detectAgentInfo(
   return { agent, reasoningEffort: reasoning };
 }
 
+/** Extract a short (~300 char) methodology summary from method.md:
+ * skip the H1 heading + any "## Overview" or "## Goal" heading and grab
+ * the first ~2 sentences of prose. Falls back to the first non-heading
+ * paragraph. */
+function extractMethodSummary(methodPath: string): string | null {
+  let text: string;
+  try { text = fs.readFileSync(methodPath, "utf-8"); } catch { return null; }
+  const lines = text.split("\n");
+  const paragraph: string[] = [];
+  let inParagraph = false;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line.startsWith("#")) {
+      if (inParagraph) break;
+      continue;
+    }
+    if (line === "") {
+      if (inParagraph) break;
+      continue;
+    }
+    // Skip bullet lists / code fences at the start
+    if (line.startsWith("```") || line.startsWith("- ") || line.startsWith("* ")) {
+      if (inParagraph) break;
+      continue;
+    }
+    paragraph.push(line);
+    inParagraph = true;
+    if (paragraph.join(" ").length > 280) break;
+  }
+  const summary = paragraph.join(" ").trim();
+  if (!summary) return null;
+  return summary.length > 320 ? summary.slice(0, 317) + "…" : summary;
+}
+
 export function loadRunSummary(taskId: string, runId: string): RunSummary {
   const dir = path.join(TASKS_DIR, taskId, "runs", runId);
   const grade = readJsonIfExists<Record<string, unknown>>(path.join(dir, "grade.json"));
   const meta = readJsonIfExists<Record<string, unknown>>(path.join(dir, "run_meta.json"));
-  const hasMethod = fs.existsSync(path.join(dir, "method.md"));
+  const methodPath = path.join(dir, "method.md");
+  const hasMethod = fs.existsSync(methodPath);
+  const methodSummary = hasMethod ? extractMethodSummary(methodPath) : null;
   const gap = grade?.["gap_vs_best_baseline"] as
     | { name: string; baseline_auprc: number; delta_auprc: number }
     | undefined;
@@ -350,6 +387,7 @@ export function loadRunSummary(taskId: string, runId: string): RunSummary {
     durationSeconds: typeof durationMs === "number" ? durationMs / 1000 : null,
     agent,
     reasoningEffort,
+    methodSummary,
   };
 }
 
