@@ -1,0 +1,88 @@
+{
+  "test_reference": {
+    "rows": 44706,
+    "unique_exact_tuples": 44706,
+    "build": "GRCh38/hg38"
+  },
+  "training": {
+    "clinvar_eligible_after_exact_exclusion": 1449595,
+    "clinvar_sampled": 25961,
+    "clinvar_final_after_invalid_alt_drop": 25960,
+    "exact_test_tuples_excluded_before_label_access": 30818,
+    "traitgym_labels_loaded": false
+  },
+  "sources": [
+    {
+      "name": "CADD v1.7 GRCh38 all SNVs",
+      "urls": [
+        "https://kircherlab.bihealth.org/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+        "https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz"
+      ],
+      "use": "Tabix extraction of raw and PHRED annotations; 44,689/44,706 test coverage, with 17 alt='.' rows imputed"
+    },
+    {
+      "name": "AlphaMissense GRCh38",
+      "url": "https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz",
+      "use": "Missense pathogenicity feature",
+      "matched_test_clinical_rows": 7689
+    },
+    {
+      "name": "NCBI ClinVar GRCh38 VCF, 2026-07-21 release",
+      "urls": [
+        "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz",
+        "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz.tbi"
+      ],
+      "use": "Non-overlapping training labels and molecular consequence; test significance fields never accessed"
+    },
+    {
+      "name": "TraitGym matched_9",
+      "url": "https://huggingface.co/datasets/songlab/TraitGym",
+      "files_used": [
+        "complex_traits_matched_9/test.parquet (coordinate columns only)",
+        "complex_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "mendelian_traits_matched_9/test.parquet (coordinate columns only)",
+        "mendelian_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet"
+      ],
+      "matches": {"complex": 11400, "mendelian": 3380, "cross_collection_overlap": 27},
+      "use": "Published chromosome-held-out predictions; label columns were not loaded"
+    },
+    {
+      "name": "UCSC Zoonomia phyloP-241m",
+      "url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/cactus241way/cactus241way.phyloP.bw",
+      "use": "Downloaded during initial iteration; not retained in final model"
+    },
+    {
+      "name": "Ensembl VEP REST",
+      "url": "https://rest.ensembl.org/vep/human/region",
+      "use": "Small annotation trial; abandoned after timeout and not used"
+    },
+    {
+      "name": "MyVariant.info REST",
+      "url": "https://myvariant.info/v1/variant",
+      "use": "Two-variant availability trial; not used"
+    },
+    {
+      "name": "UCSC Genome API",
+      "urls": [
+        "https://api.genome.ucsc.edu/list/tracks?genome=hg38",
+        "https://api.genome.ucsc.edu/getData/track?genome=hg38;track=phyloP100way"
+      ],
+      "use": "Track discovery/trial only; not used in final score"
+    },
+    {
+      "name": "CADD experimental REST API",
+      "urls": [
+        "https://cadd.gs.washington.edu/api/v1.0/GRCh38-v1.7/",
+        "https://cadd.bihealth.org/api/v1.0/GRCh38-v1.7/"
+      ],
+      "use": "One-position availability trial; empty response, not used"
+    }
+  ],
+  "iterations": [
+    {"iteration": 0, "model": "CADD/phyloP zero-shot exploration", "validation": null, "selected": false},
+    {"iteration": 1, "model": "CADD logistic", "validation_partition": "held chromosomes 3,7,12,17,22", "n": 6099, "auprc": 0.8497361685, "auroc": 0.9047275521, "brier": 0.1155570420, "selected": false},
+    {"iteration": 2, "model": "CADD + consequence logistic", "validation_partition": "held chromosomes 3,7,12,17,22", "n": 6099, "auprc": 0.8995171290, "auroc": 0.9346074368, "brier": 0.0950700430, "selected": false},
+    {"iteration": 3, "model": "CADD + AlphaMissense + consequence XGBoost", "validation_partition": "held chromosomes 3,7,12,17,22", "n": 6099, "auprc": 0.9350383299, "auroc": 0.9493205564, "brier": 0.0833029598, "selected": true},
+    {"iteration": 4, "model": "TraitGym chromosome-held-out ensemble plus selected clinical model", "validation": "component validation above; no test labels used", "selected": true}
+  ]
+}

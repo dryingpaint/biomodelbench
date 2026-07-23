@@ -31,7 +31,7 @@ export interface RunSummary {
   totalCostUsd?: number | null;
   numTurns?: number | null;
   durationSeconds?: number | null;
-  agent?: string | null;          // "claude-code" | "codex" | "unknown"
+  agent?: string | null;          // "claude" | "codex" | "unknown"
   reasoningEffort?: string | null; // "none" | "low" | "medium" | "high" | null (claude has no equivalent)
   methodSummary?: string | null;   // first paragraph / summary line of method.md
 }
@@ -296,7 +296,7 @@ function detectAgentInfo(
           if (re) reasoning = re;
         } else if (t === "system" && obj["subtype"] === "init") {
           // Claude-code's init event
-          agent = "claude-code";
+          agent = "claude";
         }
       }
     }
@@ -305,12 +305,12 @@ function detectAgentInfo(
   // 2. Fall back to run_id suffix inference
   if (!agent) {
     if (runId.includes("codex")) agent = "codex";
-    else if (runId.includes("claude")) agent = "claude-code";
+    else if (runId.includes("claude")) agent = "claude";
   }
 
   // 3. Fall back to primary_model prefix
   if (!agent && primaryModel) {
-    if (primaryModel.startsWith("claude")) agent = "claude-code";
+    if (primaryModel.startsWith("claude")) agent = "claude";
     else if (primaryModel.startsWith("gpt") || primaryModel.startsWith("o")) agent = "codex";
   }
 
@@ -404,7 +404,7 @@ export interface TraceEvent {
 }
 
 export interface TraceSummary {
-  agent: "claude-code" | "codex" | "unknown";
+  agent: "claude" | "codex" | "unknown";
   total_events: number;
   session_count: number;
   api_retry_count: number;
@@ -432,7 +432,7 @@ export function loadTraceSummary(taskId: string, runId: string): TraceSummary | 
     try {
       const first = JSON.parse(lines[0]) as Record<string, unknown>;
       const t = first["type"] as string | undefined;
-      if (t === "system" && first["subtype"] === "init") agent = "claude-code";
+      if (t === "system" && first["subtype"] === "init") agent = "claude";
       else if (t === "thread.started" || t?.startsWith("thread.")) agent = "codex";
     } catch { /* ignore */ }
   }
@@ -443,7 +443,7 @@ export function loadTraceSummary(taskId: string, runId: string): TraceSummary | 
     const t = obj["type"] as string | undefined;
     const s = obj["subtype"] as string | undefined;
 
-    if (agent === "claude-code") {
+    if (agent === "claude") {
       if (t === "system" && s === "init") {
         sessionCount++;
         if (events.length < MAX) {

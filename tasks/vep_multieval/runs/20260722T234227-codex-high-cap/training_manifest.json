@@ -1,0 +1,131 @@
+{
+  "test_set": {
+    "path": "test.parquet",
+    "rows": 44706,
+    "unique_exact_tuples": 44706,
+    "reference_build": "hg38",
+    "exclusion_key": ["chrom", "pos", "ref", "alt"]
+  },
+  "resources": [
+    {
+      "name": "TraitGym source repository",
+      "url": "https://github.com/songlab-cal/TraitGym",
+      "revision": "4d80fe889415ffc02d45c7cb5446a326288819bd",
+      "use": "workflow inspection and documentation; no labels used for fitting"
+    },
+    {
+      "name": "TraitGym Hugging Face dataset",
+      "url": "https://huggingface.co/datasets/songlab/TraitGym",
+      "files": [
+        "complex_traits_matched_9/test.parquet",
+        "complex_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "complex_traits_matched_9/preds/all/CADD.LogisticRegression.chrom.parquet",
+        "complex_traits_matched_9/preds/all/CADD.plus.RawScore.parquet",
+        "complex_traits_matched_9/features/CADD.parquet",
+        "mendelian_traits_matched_9/test.parquet",
+        "mendelian_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "mendelian_traits_matched_9/preds/all/CADD.LogisticRegression.chrom.parquet",
+        "mendelian_traits_matched_9/preds/all/CADD.plus.RawScore.parquet",
+        "mendelian_traits_matched_9/features/CADD.parquet"
+      ],
+      "exact_test_coordinate_matches": {
+        "complex_traits": 11400,
+        "mendelian_traits": 3380,
+        "cross_source_overlap": 27
+      },
+      "training_labels_used": 0,
+      "final_use": "published chromosome-held-out ensemble predictions"
+    },
+    {
+      "name": "EVEE ClinVar prediction resource",
+      "record_url": "https://zenodo.org/records/19701997",
+      "api_url": "https://zenodo.org/api/records/19701997",
+      "files_touched": [
+        "clean_shard_0.parquet",
+        "clean_shard_1.parquet",
+        "clean_shard_2.parquet",
+        "clean_shard_3.parquet",
+        "clean_shard_4.parquet"
+      ],
+      "columns_used_for_inference": [
+        "chrom", "pos", "ref", "alt", "pathogenicity", "gt_alphamissense_c",
+        "gt_cadd_c", "gt_revel_c", "gt_spliceai_max_c", "consequence"
+      ],
+      "label_columns_used_for_calibration": ["label"],
+      "calibration_shards": [0, 1],
+      "coordinate_conversion": "remove chr prefix; pos = EVEE pos + 1",
+      "exact_test_rows_removed_before_final_fit_or_validation": {
+        "shard_0_all_labels": 5692,
+        "shard_1_all_labels": 6245,
+        "shard_0_binary_labels": 5660,
+        "shard_1_binary_labels": 6205
+      },
+      "final_binary_rows": {
+        "training": 290413,
+        "validation": 320559,
+        "missense_training": 40646,
+        "missense_validation": 37780
+      },
+      "test_inference_matches": 29761
+    },
+    {
+      "name": "CADD v1.7 GRCh38 whole-genome SNVs",
+      "url": "https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+      "access": "remote tabix",
+      "test_rows_scored": 175,
+      "training_rows": 0
+    },
+    {
+      "name": "CADD API documentation and endpoint check",
+      "url": "https://cadd.gs.washington.edu/api",
+      "endpoint_checks": [
+        "https://cadd.gs.washington.edu/api/v1.0/GRCh38-v1.7/11:77201578_C_T",
+        "https://cadd.gs.washington.edu/api/v1.0/GRCh38-v1.7/11:77201578"
+      ],
+      "used_in_final_model": false
+    },
+    {
+      "name": "ClinVar FTP documentation",
+      "url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/",
+      "used_in_final_model": false
+    },
+    {
+      "name": "AlphaMissense release landing page",
+      "url": "https://zenodo.org/records/8360242",
+      "downloaded": false,
+      "note": "AlphaMissense values came from EVEE columns instead"
+    }
+  ],
+  "iterations": [
+    {
+      "iteration": 1,
+      "name": "source audit and published out-of-fold predictions",
+      "validation": null,
+      "status": "retained"
+    },
+    {
+      "iteration": 2,
+      "name": "preliminary EVEE blend before normalized exclusion",
+      "validation": {
+        "missense_auroc_range": [0.9767, 0.9768],
+        "missense_auprc_range": [0.9540, 0.9544]
+      },
+      "status": "rejected_and_discarded",
+      "reason": "chr-prefix/0-based mismatch made the initial exclusion ineffective"
+    },
+    {
+      "iteration": 3,
+      "name": "final leakage-filtered consequence-aware blend",
+      "validation": {
+        "missense": {"auroc": 0.9761187167, "auprc": 0.9508427370, "brier": 0.0493433570},
+        "raw_evee_overall": {"auroc": 0.9971951388, "auprc": 0.9894428256, "brier": 0.0106781998}
+      },
+      "status": "final"
+    }
+  ],
+  "final_coverage": {
+    "rows": 44706,
+    "scored": 44706,
+    "fraction": 1.0
+  }
+}

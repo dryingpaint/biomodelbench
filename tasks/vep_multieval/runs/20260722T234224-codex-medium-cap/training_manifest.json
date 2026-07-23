@@ -1,0 +1,152 @@
+{
+  "test_tuple_filter": {
+    "path": "test.parquet",
+    "build": "hg38",
+    "unique_tuples": 44706,
+    "duplicates": 0
+  },
+  "resources": [
+    {
+      "name": "CADD v1.7 GRCh38 whole-genome SNVs",
+      "urls": [
+        "https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+        "https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz.tbi",
+        "https://kircherlab.bihealth.org/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz",
+        "https://cadd.bihealth.org/snv/GRCh38-v1.7/11:77201578_C_T"
+      ],
+      "role": "final inference and calibration features",
+      "test_alleles_scored": 44689,
+      "no_alternate_allele_rows": 17
+    },
+    {
+      "name": "AlphaMissense v2 hg38",
+      "urls": [
+        "https://zenodo.org/records/8360242",
+        "https://zenodo.org/records/8360242/files/AlphaMissense_hg38.tsv.gz?download=1"
+      ],
+      "role": "final inference and calibration feature",
+      "test_coverage": 7693,
+      "leakage_filtered_clinvar_pool_coverage": 201788
+    },
+    {
+      "name": "ClinVar GRCh38 weekly VCF 2026-07-21",
+      "urls": [
+        "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz",
+        "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz.tbi"
+      ],
+      "role": "labels for calibration only",
+      "eligible_before_test_dedup": 1480111,
+      "exact_test_tuples_excluded": 30656,
+      "duplicate_or_discordant_removed": 0,
+      "retained_after_dedup": 1449455,
+      "sampled_training_rows": 10000
+    },
+    {
+      "name": "TraitGym matched_9 released predictions",
+      "urls": [
+        "https://huggingface.co/api/datasets/songlab/TraitGym/tree/main",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/test.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/test.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/preds/all/CADD+GPN-MSA+Borzoi.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/preds/all/CADD+Borzoi.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/preds/all/CADD+Borzoi.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/preds/all/GPN-MSA.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/preds/all/GPN-MSA.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/complex_traits_matched_9/preds/all/CADD.LogisticRegression.chrom.parquet",
+        "https://huggingface.co/datasets/songlab/TraitGym/resolve/main/mendelian_traits_matched_9/preds/all/CADD.LogisticRegression.chrom.parquet",
+        "https://github.com/songlab-cal/TraitGym"
+      ],
+      "role": "final chromosome-held-out inference predictions; labels ignored",
+      "coordinate_rows_touched": 14780,
+      "unique_test_coverage": 14753,
+      "cross_source_duplicate_tuples": 27
+    },
+    {
+      "name": "GPN-MSA hg38 scores",
+      "urls": [
+        "https://huggingface.co/api/datasets/songlab/gpn-msa-hg38-scores/tree/main",
+        "https://huggingface.co/datasets/songlab/gpn-msa-hg38-scores/resolve/main/scores.tsv.bgz"
+      ],
+      "role": "attempted intermediate; excluded after incomplete range responses",
+      "used_in_final": false
+    },
+    {
+      "name": "EVEE investigation",
+      "urls": [
+        "https://xix0d0o8le.execute-api.us-east-1.amazonaws.com/variants/search",
+        "https://github.com/goodfire-ai/evee-mcp.git",
+        "https://github.com/goodfire-ai/evee-manuscript.git",
+        "https://github.com/goodfire-ai/variant-viewer.git",
+        "https://www.biorxiv.org/content/10.64898/2026.04.10.717844v4.full.pdf",
+        "https://zenodo.org/api/records/19701997",
+        "https://zenodo.org/api/records/19701997/files/manifest.json/content"
+      ],
+      "role": "investigated then excluded: deployed probe training membership unavailable",
+      "used_in_final": false
+    },
+    {
+      "name": "dbNSFP download documentation",
+      "urls": ["https://www.dbnsfp.org/download/"],
+      "role": "investigated only; no data downloaded",
+      "used_in_final": false
+    }
+  ],
+  "iterations": [
+    {
+      "iteration": "alpha_missense_only",
+      "validation_partition": "held-out chromosomes, missense-covered ClinVar pool",
+      "n": 26628,
+      "auroc": 0.9680023125,
+      "auprc": 0.9355156295,
+      "brier": 0.0662432477,
+      "selected": false
+    },
+    {
+      "iteration": "cadd_logistic",
+      "validation_partition": "held-out chromosomes, balanced 10k calibration sample",
+      "n": 1354,
+      "auroc": 0.9601866300,
+      "auprc": 0.9545566468,
+      "brier": 0.0825286739,
+      "selected": false
+    },
+    {
+      "iteration": "cadd_alpha_missense_logistic",
+      "validation_partition": "held-out chromosomes, balanced 10k calibration sample",
+      "n": 1354,
+      "auroc": 0.9763359515,
+      "auprc": 0.9744301754,
+      "brier": 0.0549033858,
+      "selected": false
+    },
+    {
+      "iteration": "cadd_alpha_missense_histgb",
+      "validation_partition": "held-out chromosomes, balanced 10k calibration sample",
+      "n": 1354,
+      "auroc": 0.9791345244,
+      "auprc": 0.9793532316,
+      "brier": 0.0551882045,
+      "selected": true
+    },
+    {
+      "iteration": "traitgym_released_chromosome_holdout_ensemble",
+      "validation_produced_locally": false,
+      "published_reference_auprc_complex": 0.362,
+      "published_reference_auprc_mendelian": 0.648,
+      "selected": true
+    },
+    {
+      "iteration": "standalone_gpn_msa_remote_lookup",
+      "validation_produced_locally": false,
+      "selected": false,
+      "reason": "incomplete HTTP range responses"
+    },
+    {
+      "iteration": "evee_deployed_probe",
+      "validation_produced_locally": false,
+      "selected": false,
+      "reason": "could not guarantee exact test tuples were absent from deployed probe training"
+    }
+  ]
+}
