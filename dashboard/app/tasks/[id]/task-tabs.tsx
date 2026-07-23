@@ -210,11 +210,15 @@ export default function TaskTabs({
                   const bgClass = isRun
                     ? "hover:bg-stone-50 cursor-pointer"
                     : "bg-amber-50/40 hover:bg-amber-50";
+                  // Prepend Next.js basePath (e.g. "/biomodelbench") so
+                  // whole-row clicks work under a subpath deploy.
+                  const basePath = (typeof window !== "undefined" &&
+                    (window as unknown as { __NEXT_DATA__?: { assetPrefix?: string } }).__NEXT_DATA__?.assetPrefix) || "";
                   return (
                     <tr
                       key={`${r.kind}-${r.method}-${r.partition ?? "_"}-${i}`}
                       className={`border-b border-stone-100 last:border-b-0 ${bgClass}`}
-                      onClick={() => linkTarget && (window.location.href = linkTarget)}
+                      onClick={() => linkTarget && (window.location.href = `${basePath}${linkTarget}`)}
                     >
                       <td className="px-4 py-2">
                         {isRun ? (
