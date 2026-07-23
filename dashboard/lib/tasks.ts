@@ -409,7 +409,7 @@ export interface TraceSummary {
   session_count: number;
   api_retry_count: number;
   tool_call_count: number;
-  first_events: TraceEvent[]; // capped to 200 to keep pages light
+  first_events: TraceEvent[]; // full trace, no cap
 }
 
 /** Parse agent_log.jsonl into a bounded trace summary. Streams the file so
@@ -425,7 +425,7 @@ export function loadTraceSummary(taskId: string, runId: string): TraceSummary | 
   let apiRetryCount = 0;
   let toolCallCount = 0;
   const events: TraceEvent[] = [];
-  const MAX = 200;
+  const MAX = 100000; // effectively no cap — show full trace
 
   // Detect agent from first event
   if (lines.length > 0) {

@@ -240,12 +240,6 @@ export default async function RunPage({
                     </div>
                   );
                 })}
-                {trace.first_events.length >= 200 && (
-                  <div className="text-stone-400 italic py-2">
-                    … truncated at 200 events. Full log at{" "}
-                    <code>tasks/{id}/runs/{run.runId}/agent_log.jsonl</code>
-                  </div>
-                )}
                 {trace.first_events.length === 0 && (
                   <div className="text-stone-500 italic py-2">
                     No events captured yet (agent_log.jsonl empty or gitignored).
