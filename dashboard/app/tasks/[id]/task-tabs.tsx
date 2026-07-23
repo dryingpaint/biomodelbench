@@ -213,9 +213,10 @@ export default function TaskTabs({
                     ? "hover:bg-stone-50 cursor-pointer"
                     : "bg-amber-50/40 hover:bg-amber-50";
                   // Prepend Next.js basePath (e.g. "/biomodelbench") so
-                  // whole-row clicks work under a subpath deploy.
-                  const basePath = (typeof window !== "undefined" &&
-                    (window as unknown as { __NEXT_DATA__?: { assetPrefix?: string } }).__NEXT_DATA__?.assetPrefix) || "";
+                  // whole-row clicks work under a subpath deploy. The
+                  // value is baked in at build time via NEXT_PUBLIC_BASE_PATH
+                  // (see next.config.ts).
+                  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
                   return (
                     <React.Fragment key={`${r.kind}-${r.method}-${r.partition ?? "_"}-${i}`}>
                     <tr

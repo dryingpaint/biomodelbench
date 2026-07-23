@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   basePath,
   assetPrefix: basePath,
+  // Expose basePath to client bundles as NEXT_PUBLIC_BASE_PATH so
+  // event handlers (e.g. row-click navigation) can prepend it.
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath ?? "",
+  },
 };
 
 export default nextConfig;
