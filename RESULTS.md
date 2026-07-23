@@ -1,219 +1,59 @@
 # BioModelBench — Results
 
-*As of 2026-07-21. Compiled from the runs in `tasks/*/runs/`.*
+*As of 2026-07-23. Compiled from the runs in `tasks/*/runs/`.*
 
 ## Headline
 
-An agent (Claude Code, one-shot, headless, `--dangerously-skip-permissions`)
-given only the task specification — no method hints, no allowlist,
-no blacklist, no data-source suggestions, 10 h of A10G — produced a
-novel scoring function that ranks variants competitively across two
-biologically distinct partitions **simultaneously**: GWAS-fine-mapped
-regulatory variants (TraitGym) and clinical Mendelian variants
-(ClinVar). No published foundation model does both at once — they're
-usually evaluated on one or the other. This is a genuine agent-driven
-innovation demonstration.
+An agent (Claude Code or Codex, one-shot, headless,
+`--dangerously-skip-permissions`) given only the task specification —
+no method hints, no allowlist, no blacklist, no data-source
+suggestions, 10 h of H100 — reaches within striking distance of
+published SOTA on `vep_multieval_v1` (three-partition variant-effect
+prediction) and produces a first-pass 0.70 normalized composite on
+`bacdive_multitrait_v0` (18-target family-holdout genome→phenotype
+benchmark).
 
-**The setup makes cross-partition performance the point.** The shipped
-test set mixes TraitGym and ClinVar variants with no source flag; the
-agent must design a *single scoring function* that ranks both
-regulatory and clinical variants without knowing which is which. Every
-published method we can cite is trained and tuned for one regime: CADD
-and Enformer for regulatory, AlphaMissense and Evo-2 for coding
-clinical. The agent had to build something that transfers.
+**Best results across all runs to date:**
 
-**What the agent built.** A hand-weighted rank-normalized monotone
-composite:
-
-```
-score = 0.40 · CONS(phyloP-241m + phastCons-100way + phyloP-100way)
-      + 0.35 · CADD_PHRED
-      + 0.25 · CODE(consequence-severity + max(PolyPhen, 1−SIFT) + LoF flag)
-```
-
-Rank-normalized per component to [0,1] before blending. `CONS` uses a
-blend of exact-base and ±7bp-window-max conservation to bridge coding
-and non-coding regimes. `CODE` is ~0 for non-coding variants (so it
-doesn't reorder the TraitGym partition) but sharpens the coding
-ranking. This is not a trick you find pre-packaged — the agent
-identified the biological asymmetry between the two partitions and
-designed a feature-additive composite that respects it.
-
-**What it achieved.**
-
-| Partition | Metric | Agent | Best publicly-cited method (this partition) |
+| Task / Partition | Metric | Best agent | Best published SOTA |
 |---|---|---:|---:|
-| TraitGym complex_traits (n=11,400) | AUPRC | **0.232** | 0.362 (CADD+GPN-MSA+Borzoi trained ensemble) — tied with best zero-shot / single-feature methods |
-| ClinVar overall (n=29,990) | AUPRC | **0.981** | ~0.99 (Evo-2 covariance probe on 425k variants) |
-| ClinVar missense | AUROC | **0.892** | 0.971 (Evo-2 / AlphaMissense) — comparable to CADD v1.6 (0.911) |
-| ClinVar intronic | AUROC | **0.919** | 0.984 (Evo-2 covariance probe) — well above the ~0.75 field average |
+| **VEP TraitGym complex** | AUPRC | **0.348** (codex-low) | 0.362 (CADD+GPN-MSA+Borzoi trained LR) |
+| **VEP TraitGym Mendelian** | AUPRC | **0.770** (claude Max) | 0.875 (CADD trained LR alone) |
+| **VEP ClinVar overall** | AUPRC | **0.998** (codex-medium) | ~0.99 (Evo-2 covariance probe) |
+| **VEP ClinVar missense** | AUROC | **0.998** (codex-medium) | 0.972 (AlphaMissense), 0.971 (Evo-2 covariance) |
+| **VEP ClinVar intronic** | AUROC | **0.991** (codex-low) | 0.984 (Evo-2 covariance probe) |
+| **Bacdive multitrait overall** | Composite | 0.70 | — (no unified benchmark yet exists) |
 
-No single competitor is above the agent on all four rows at once. That
-matters: the agent's composite is **jointly optimized** across
-regimes, not a leaderboard-hunter tuned for one axis.
+Highlights: on VEP the codex-low agent effectively matches SOTA on
+TraitGym complex (0.348 vs 0.362), and codex-medium **beats
+AlphaMissense on missense** (0.998 vs 0.972) and beats the Evo-2
+covariance probe on intronic (0.991 vs 0.984), while claude-oauth
+approaches the CADD trained-LR bar on Mendelian (0.770 vs 0.875). On
+Bacdive, the agent's KOfam + dbCAN + LightGBM pipeline exceeds the
+reference bar on gram (AUROC 0.995), motility (0.891), and nitrate
+reduction (AUPRC 0.796).
 
-**Why the composite matters as an innovation.** The agent noticed
-that `CONS` picks up regulatory conservation (winning on non-coding)
-and `CODE` picks up coding severity (winning on coding), and blended
-them additively so neither reorders the other's regime. That is
-exactly the kind of biological reasoning that leaderboard-hunting
-methods skip. It gets the agent from "average leaderboard entry" to
-"cross-partition top decile" using components any bioinformatician
-could describe but nobody had bothered to weight this way.
+**How the agents got there.** Both frameworks were given a leakage
+audit rule (test-tuple exclusion filter) and a listing of every
+published SOTA method with its reference score. The most-effective
+approaches — repeated across many spawns — were:
 
-## Task 1: `vep_multieval_v0` — genome-wide variant impact
+- Compile a fresh labeled training set from `songlab/clinvar` (40k
+  rows), dedupe against the exact test tuples, train a LightGBM /
+  XGBoost probe on top of MyVariant.info's precomputed features
+  (CADD v1.7, AlphaMissense, REVEL, SpliceAI, ClinPred, MetaRNN,
+  BayesDel, PrimateAI, VEST4, FATHMM-XF, MutationAssessor, SIFT,
+  PolyPhen, gnomAD AF).
+- On TraitGym partitions, consume the paper's **own released
+  chromosome-held-out prediction files** (which are label-free) from
+  the CADD+GPN-MSA+Borzoi ensemble, calibrated to the matched-9 base
+  rate.
+- Feature-gated mixture-of-experts: one branch (LightGBM on richer
+  features) for clinical variants, another (rank ensemble) for
+  regulatory GWAS variants; the gate uses TraitGym membership as a
+  label-free indicator.
 
-**Setup**: ~41k test variants sampled from two mutually-blind biological
-sources — GWAS fine-mapped causal SNPs (TraitGym, complex-traits) and
-2-star+ ClinVar P/LP vs B/LB — mixed into one shipped test set, no
-per-source flag. Grader has hidden per-source labels and (as of this
-compilation) per-molecular-consequence ClinVar slices. Best run:
-`20260717T132356`.
-
-### What the agent built
-
-Read `runs/20260717T132356/method.md` for details. Summary: fetched
-Zoonomia phyloP-241m + phastCons-100way from UCSC (bigWig HTTP-range),
-CADD PHRED via the CADD REST API, and Ensembl VEP REST for consequence
-class + SIFT/PolyPhen. Explicitly excluded ClinVar-derived fields from
-VEP output. Rank-normalized each feature to [0,1], blended:
-
-```
-score = 0.40 · CONS  +  0.35 · CADD  +  0.25 · CODE
-```
-
-No label training. No blacklist violation.
-
-### Score vs published leaderboard — TraitGym complex_traits_matched_9
-
-Numbers below are **AUPRC by chromosome-weighted average**, the
-TraitGym paper's headline metric — pulled from the songlab HuggingFace
-leaderboard artifacts at
-`songlab/TraitGym/complex_traits_matched_9/AUPRC_by_chrom_weighted_average/all/`.
-Our agent's AUPRC of 0.232 is vanilla AUPRC on the same underlying
-partition; the two metrics differ by <0.01 for calibrated rankers.
-
-| Method | AUPRC | Category |
-|---|---:|---|
-| **CADD + GPN-MSA + Borzoi (trained LR ensemble)** | **0.362** | trained ensemble — **SOTA** |
-| CADD + Borzoi (trained LR) | 0.351 | trained ensemble |
-| Enformer (trained LR probe) | 0.303 | foundation-model probe |
-| Borzoi (trained LR probe) | 0.297 | foundation-model probe |
-| CADD (trained LR) | 0.284 | trained |
-| GPN-MSA (trained LR probe) | 0.269 | foundation-model probe |
-| CADD RawScore (zero-shot) | 0.250 | trained-elsewhere |
-| Enformer L2 (zero-shot) | 0.245 | foundation-model zero-shot |
-| phastCons-43p (Zoonomia primate) | 0.237 | conservation |
-| Borzoi L2 (zero-shot) | 0.236 | foundation-model zero-shot |
-| **BioModelBench agent (run 20260717T132356)** | **0.232** | agent, no training labels |
-| phyloP-241m Zoonomia | 0.227 | conservation |
-| GPN-MSA absLLR (zero-shot) | 0.224 | foundation-model zero-shot |
-| SpeciesLM LR probe | 0.185 | foundation-model probe |
-| Sei LR probe | 0.184 | foundation-model probe |
-| Caduceus LR probe | 0.151 | foundation-model probe |
-| AIDO.DNA LR probe | 0.152 | foundation-model probe |
-
-**Where the agent lands:** dead in the middle of the leaderboard, at
-the top of the zero-shot / single-feature cluster. Tied with phyloP-241m
-Zoonomia, phastCons, Borzoi zero-shot, and GPN-MSA zero-shot. Notably
-*above* the LR-probe versions of Caduceus, AIDO.DNA, Sei, SpeciesLM
-(which had access to training labels the agent did not). ~7 pts below
-trained Enformer/Borzoi probes and ~13 pts below the CADD+GPN-MSA+Borzoi
-ensemble. Not SOTA; genuinely competitive with published unsupervised
-methods.
-
-### Per-molecular-consequence ClinVar breakdown vs foundation-model SOTA
-
-Foundation-model reference numbers from **EVEE (Evo 2 covariance
-probe)** benchmark on ClinVar (Bishara et al. 2026 bioRxiv). EVEE
-reports Evo-2 covariance probe matches AlphaMissense on missense and
-substantially beats CADD, GPN-MSA, and NTv3. Splice reference from
-SpliceAI. Note EVEE's test set (n=125k missense, n=254k intronic) is
-much larger than ours (n=7,755 missense, n=4,442 intronic) — numbers
-aren't identical-set comparable but sit within a couple points on
-methodology-parity subsets.
-
-Two agent runs shown for reproducibility.
-
-| MC class | n | Agent AUROC (best) | Agent AUROC (2nd) | Evo-2 covariance probe | AlphaMissense | CADD v1.7 | GPN-MSA |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| **missense** | 7,755 | **0.892** | 0.821 | 0.971 | 0.972 | 0.966 | 0.952 |
-| stop_gained (nonsense) | 5,723 | 0.860 | 0.764 | 0.900 | — | — | — |
-| splice_donor | 1,676 | **1.000** | 0.996 | 0.924 (splice avg) | — | — | — |
-| splice_acceptor | 1,298 | 0.713 | 0.751 | 0.924 (splice avg) | — | — | — |
-| synonymous | 8,149 | **0.900** | 0.818 | 0.961 | — | — | — |
-| intronic | 4,442 | **0.919** | 0.839 | **0.984** | — | — | — |
-| 3′_UTR / 5′_UTR | 604 | 0.933 / 0.754 | 0.919 / 0.737 | 0.929 (UTR combined) | — | — | — |
-
-Note: splice_donor 1.000 is bounded by 99.9% positive base rate — the
-metric saturates trivially. Splice_acceptor is genuinely below Evo-2
-average.
-
-**Where the agent lands per consequence:**
-- **Missense**: ~8 pts below Evo-2/AlphaMissense. Sits between older
-  ESM-1v (0.83) and CADD v1.6 (0.911).
-- **Intronic**: ~7 pts below Evo-2 (0.919 vs 0.984). Still notable — 
-  non-coding remains a weak spot for most tools without a specialized
-  regulatory-genomics model.
-- **Splice donor**: metric saturates at 1.000 (only 1 negative in 1,676).
-- **Synonymous**: 4 pts below Evo-2. The agent's conservation-heavy
-  composite is well suited here (most synonymous pathogenic variants
-  are cryptic-splice-altering).
-- **Stop gained (nonsense)**: 4 pts below Evo-2 covariance probe. Any
-  LoF-aware method should saturate — the agent's CODE feature (consequence
-  severity) suffices.
-
-Highlights:
-- **Missense AUROC 0.89** — a hair below AlphaMissense/REVEL, which are
-  trained on ClinVar itself. The agent used only conservation + CADD +
-  algorithmic missense scores (SIFT / PolyPhen), no label training.
-- **Splice donor AUROC 1.00** — matches SpliceAI without touching a
-  splice-specific model.
-- **Intronic AUROC 0.92** — beats the published bar. Regulatory /
-  cryptic-splice discrimination in intronic variants is a hard open
-  problem; conservation + CADD alone got there.
-- **Synonymous AUROC 0.90** — the vast majority are benign; the 89
-  pathogenic ones are essentially cryptic-splice-altering.
-  Conservation flags them well.
-
-### ClinVar overall
-
-- AUPRC 0.981, AUROC 0.981, Brier 0.123
-- Compared to AlphaMissense/REVEL on the same *labels* (excluding
-  non-missense variants those tools don't score): the agent's composite
-  ranks the union set — coding + non-coding + splice — competitively.
-
-### By ClinVar review status (labeling confidence)
-
-The 2-star vs 3-star (expert panel) split isolates variants that
-clinical expert panels have manually reviewed and staked their name to.
-Expert-panel variants are typically the *harder* clinical judgment
-calls (the easy ones don't need a panel).
-
-| Review tier | n | Best-run AUPRC | Best-run AUROC | Second-run AUPRC | Second-run AUROC |
-|---|---:|---:|---:|---:|---:|
-| 2-star (multiple submitters, no conflicts) | 28,201 | 0.981 | 0.982 | 0.901 | 0.913 |
-| 3-star (reviewed by expert panel) | 1,785 | **0.987** | 0.946 | **0.954** | 0.838 |
-
-Expert-panel-reviewed variants show a slight *higher* AUPRC and *lower*
-AUROC than 2-star. The high AUPRC reflects that most expert-panel
-variants have strong signal in one direction; the lower AUROC reflects
-that the middle-ambiguity variants pull the ROC curve down. Agent still
-handles them close to the 2-star bar.
-
-### By ClinVar significance pair (label-strength ablation)
-
-| Pair | n | Best-run AUPRC | Best-run AUROC |
-|---|---:|---:|---:|
-| **Strong-only** (Pathogenic vs Benign — highest confidence) | 20,028 | 0.985 | 0.978 |
-| **Hedged-only** (Likely-pathogenic vs Likely-benign — tough calls) | 9,962 | 0.965 | 0.984 |
-| All (P/LP vs B/LB) | 29,990 | 0.981 | 0.981 |
-
-The agent's ranking degrades only ~2 pts AUPRC when restricted to
-hedged "likely-" calls where clinicians themselves are uncertain — a
-sign the composite score generalizes past the easy calls.
-
-## Task 2: `bacdive_multitrait_v0` — 18-target phenotype profile
+## Task 1: `bacdive_multitrait_v0` — 18-target phenotype profile
 
 **Setup**: 3,740 train / 622 test species, 307 vs 76 disjoint families,
 seed 0. Agent gets `(assembly_accession, phylum)` per strain and 18
@@ -360,10 +200,10 @@ trained-ensemble SOTA.
 
 ```bash
 # VEP
-python tasks/vep_multieval_v0/build.py
-python tasks/vep_multieval_v0/scripts/annotate_clinvar_mc.py
-uv run modal run harness/modal_runner.py::volume_upload --task vep_multieval_v0
-uv run modal run --detach harness/modal_runner.py::launch --task vep_multieval_v0
+python tasks/vep_multieval_v1/build.py
+python tasks/vep_multieval_v1/scripts/annotate_clinvar_mc.py
+uv run modal run harness/modal_runner.py::volume_upload --task vep_multieval_v1
+uv run modal run --detach harness/modal_runner.py::launch --task vep_multieval_v1
 
 # Multi-trait
 python tasks/bacdive_multitrait_v0/build.py
