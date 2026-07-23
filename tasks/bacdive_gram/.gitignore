@@ -20,7 +20,6 @@ hidden/
 runs/**/*.parquet
 runs/**/*.npz
 runs/**/*.pkl
-runs/**/agent_log.jsonl
 runs/**/agent_stderr.txt
 runs/**/feats_*
 runs/**/preds_*
