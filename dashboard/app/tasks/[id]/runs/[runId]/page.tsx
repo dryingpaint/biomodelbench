@@ -205,6 +205,58 @@ export default async function RunPage({
         </section>
       )}
 
+      {(() => {
+        const trace = loadTraceSummary(id, run.runId);
+        if (!trace) return null;
+        return (
+          <section>
+            <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
+              Agent trace
+            </div>
+            <div className="border border-stone-200 bg-white rounded p-5 space-y-4">
+              <div className="text-xs text-stone-600 grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">Agent</div><div className="font-mono">{trace.agent}</div></div>
+                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">Sessions</div><div className="font-mono">{trace.session_count}</div></div>
+                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">Tool calls</div><div className="font-mono">{trace.tool_call_count}</div></div>
+                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">API retries</div><div className="font-mono">{trace.api_retry_count}</div></div>
+                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">Log lines</div><div className="font-mono">{trace.total_events}</div></div>
+              </div>
+              <div className="space-y-1 font-mono text-[11px] leading-snug max-h-[600px] overflow-y-auto border-t border-stone-100 pt-3">
+                {trace.first_events.map((e, i) => {
+                  const color =
+                    e.kind === "session_start" ? "text-blue-700" :
+                    e.kind === "text" ? "text-stone-800" :
+                    e.kind === "tool_call" ? "text-emerald-700" :
+                    e.kind === "tool_result" ? "text-stone-500" :
+                    e.kind === "result" ? "text-purple-700" :
+                    "text-orange-600";
+                  return (
+                    <div key={i} className={`py-1 border-b border-stone-100 last:border-b-0 ${color}`}>
+                      <span className="text-stone-400 mr-2">[{e.kind}]</span>
+                      {e.summary}
+                      {e.exit_code !== undefined && e.exit_code !== 0 && (
+                        <span className="text-red-600 ml-2">exit={e.exit_code}</span>
+                      )}
+                    </div>
+                  );
+                })}
+                {trace.first_events.length >= 200 && (
+                  <div className="text-stone-400 italic py-2">
+                    … truncated at 200 events. Full log at{" "}
+                    <code>tasks/{id}/runs/{run.runId}/agent_log.jsonl</code>
+                  </div>
+                )}
+                {trace.first_events.length === 0 && (
+                  <div className="text-stone-500 italic py-2">
+                    No events captured yet (agent_log.jsonl empty or gitignored).
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
       {run.method && (
         <section>
           <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
@@ -226,58 +278,6 @@ export default async function RunPage({
           </pre>
         </section>
       )}
-
-      {(() => {
-        const trace = loadTraceSummary(id, run.runId);
-        if (!trace) return null;
-        return (
-          <section>
-            <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
-              Agent trace
-            </div>
-            <div className="border border-stone-200 bg-white rounded p-5 space-y-3">
-              <div className="text-xs text-stone-600 grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">Agent</div><div className="font-mono">{trace.agent}</div></div>
-                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">Sessions</div><div className="font-mono">{trace.session_count}</div></div>
-                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">Tool calls</div><div className="font-mono">{trace.tool_call_count}</div></div>
-                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">API retries</div><div className="font-mono">{trace.api_retry_count}</div></div>
-                <div><div className="uppercase tracking-wider text-stone-400 text-[10px]">Log lines</div><div className="font-mono">{trace.total_events}</div></div>
-              </div>
-              <details className="text-xs">
-                <summary className="cursor-pointer text-stone-700 hover:text-stone-900 font-medium py-1">
-                  First {trace.first_events.length} events (click to expand)
-                </summary>
-                <div className="mt-3 space-y-1 font-mono text-[11px] leading-snug max-h-[600px] overflow-y-auto">
-                  {trace.first_events.map((e, i) => {
-                    const color =
-                      e.kind === "session_start" ? "text-blue-700" :
-                      e.kind === "text" ? "text-stone-800" :
-                      e.kind === "tool_call" ? "text-emerald-700" :
-                      e.kind === "tool_result" ? "text-stone-500" :
-                      e.kind === "result" ? "text-purple-700" :
-                      "text-orange-600";
-                    return (
-                      <div key={i} className={`py-1 border-b border-stone-100 last:border-b-0 ${color}`}>
-                        <span className="text-stone-400 mr-2">[{e.kind}]</span>
-                        {e.summary}
-                        {e.exit_code !== undefined && e.exit_code !== 0 && (
-                          <span className="text-red-600 ml-2">exit={e.exit_code}</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {trace.first_events.length >= 200 && (
-                    <div className="text-stone-400 italic py-2">
-                      … truncated at 200 events. Full log at{" "}
-                      <code>tasks/{id}/runs/{run.runId}/agent_log.jsonl</code>
-                    </div>
-                  )}
-                </div>
-              </details>
-            </div>
-          </section>
-        );
-      })()}
 
       {task.prompt && (
         <section>

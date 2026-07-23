@@ -57,6 +57,92 @@ export interface CrossTaskRunRow extends RunSummary {
   partition?: string;  // for multi-partition graders (e.g. "traitgym", "clinvar")
 }
 
+/** A published-baseline row for the leaderboard. Same shape as a CrossTaskRunRow
+ * so the two can be merged and sorted together. Naming: `isBaseline: true`
+ * distinguishes it from agent runs. */
+export interface BaselineRow {
+  isBaseline: true;
+  taskId: string;
+  partition: string;
+  method: string;   // e.g. "AlphaMissense", "CADD_v1.7_LR"
+  auprc?: number | null;
+  auroc?: number | null;
+  note?: string;
+}
+
+/** Extract published-baseline rows from a task's reference_baselines
+ * (typically found on every run's grade.json under `reference_baselines`).
+ * They're task-level metadata — pull from any graded run. Returns [] if
+ * no baselines are declared. */
+export function loadTaskBaselines(taskId: string): BaselineRow[] {
+  const runsDir = path.join(TASKS_DIR, taskId, "runs");
+  if (!fs.existsSync(runsDir)) return [];
+  // Find any graded run; baselines are identical across runs of the same task.
+  let baselines: Record<string, unknown> | undefined;
+  for (const runId of listRunIds(taskId)) {
+    const grade = readJsonIfExists<Record<string, unknown>>(
+      path.join(runsDir, runId, "grade.json"),
+    );
+    const b = grade?.["reference_baselines"];
+    if (b && typeof b === "object" && !Array.isArray(b)) {
+      baselines = b as Record<string, unknown>;
+      break;
+    }
+  }
+  if (!baselines) return [];
+  const rows: BaselineRow[] = [];
+  for (const [partition, section] of Object.entries(baselines)) {
+    if (!section || typeof section !== "object" || Array.isArray(section)) continue;
+    for (const [method, val] of Object.entries(section as Record<string, unknown>)) {
+      if (method === "note") continue;
+      // Two supported shapes:
+      //   {method: {auprc: X, auroc: Y}}    ← v1
+      //   {method: {AlphaMissense_AUROC: X}} ← v0 nested
+      if (val && typeof val === "object" && !Array.isArray(val)) {
+        const v = val as Record<string, unknown>;
+        // Standard shape
+        if ("auprc" in v || "auroc" in v) {
+          rows.push({
+            isBaseline: true,
+            taskId,
+            partition,
+            method,
+            auprc: (v["auprc"] as number | undefined) ?? null,
+            auroc: (v["auroc"] as number | undefined) ?? null,
+            note: (v["note"] as string | undefined),
+          });
+        } else {
+          // Nested shape (method sub-scores like AlphaMissense_AUROC)
+          for (const [subK, subV] of Object.entries(v)) {
+            if (typeof subV === "number") {
+              const isAuroc = subK.toLowerCase().includes("auroc");
+              rows.push({
+                isBaseline: true,
+                taskId,
+                partition,
+                method: subK.replace(/_AUROC$|_AUPRC$/, ""),
+                auprc: isAuroc ? null : subV,
+                auroc: isAuroc ? subV : null,
+              });
+            }
+          }
+        }
+      } else if (typeof val === "number") {
+        // Flat scalar shape (evo-2 per-consequence table)
+        rows.push({
+          isBaseline: true,
+          taskId,
+          partition,
+          method,
+          auprc: null,
+          auroc: val,
+        });
+      }
+    }
+  }
+  return rows;
+}
+
 /** Detect if a grade.json has nested per-partition metrics rather than a
  * flat top-level shape. Returns the partition names if so, else []. */
 function detectPartitions(taskId: string, runId: string): string[] {
