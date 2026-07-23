@@ -11,3 +11,6 @@ runs/**/agent_stderr.txt
 runs/**/feats_*
 runs/**/preds_*
 runs/**/checkpoint/
+
+# Un-ignore the trace log so the dashboard can render it
+!runs/**/agent_log.jsonl
