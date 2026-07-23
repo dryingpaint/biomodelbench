@@ -1,4 +1,4 @@
-id: bacdive_gram_v0
+id: bacdive_gram
 title: Bacterial Gram-staining from genome, family-holdout blind eval
 modality: organism
 compute_tier: T1

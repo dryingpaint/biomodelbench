@@ -1,4 +1,4 @@
-"""Deterministic grader for bacdive_multitrait_v0.
+"""Deterministic grader for bacdive_multitrait.
 
 Reads a submission parquet, joins against the hidden per-target labels
 on `assembly_accession`, and reports per-target metrics + per-tier and

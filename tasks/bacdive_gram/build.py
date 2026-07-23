@@ -1,4 +1,4 @@
-"""Build the bacdive_gram_v0 bundle.
+"""Build the bacdive_gram bundle.
 
 Produces:
   bundle/train.parquet   → strains with Gram labels; family-disjoint from test

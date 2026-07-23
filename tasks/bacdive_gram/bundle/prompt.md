@@ -1,4 +1,4 @@
-# BioModelBench — Bacterial Gram-staining (bacdive_gram_v0)
+# BioModelBench — Bacterial Gram-staining (bacdive_gram)
 
 ## Task
 

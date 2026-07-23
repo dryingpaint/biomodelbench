@@ -1,4 +1,4 @@
-# `vep_multieval_v1` — VEP across 3 partitions, self-compiled training allowed
+# `vep_multieval` — VEP across 3 partitions, self-compiled training allowed
 
 ## Task
 
@@ -34,8 +34,8 @@ and per-significance-pair ClinVar slices.
 ## Regenerate the bundle
 
 ```bash
-python tasks/vep_multieval_v1/build.py
-python tasks/vep_multieval_v1/scripts/annotate_clinvar_mc.py
+python tasks/vep_multieval/build.py
+python tasks/vep_multieval/scripts/annotate_clinvar_mc.py
 ```
 
 Downloads:
@@ -58,8 +58,8 @@ hidden/build_stats.json
 ## Run
 
 ```bash
-uv run modal run harness/modal_runner.py::volume_upload --task vep_multieval_v1
-uv run modal run --detach harness/modal_runner.py::launch --task vep_multieval_v1
+uv run modal run harness/modal_runner.py::volume_upload --task vep_multieval
+uv run modal run --detach harness/modal_runner.py::launch --task vep_multieval
 ```
 
 The runner uses **H100 (80 GB VRAM)** and a 10-hour wall-clock budget.
@@ -69,9 +69,9 @@ continuation prompt until the wall clock is nearly exhausted.
 ## Grade
 
 ```bash
-python tasks/vep_multieval_v1/grade.py \
-    --submission tasks/vep_multieval_v1/runs/<run_id>/answer.parquet \
-    --out        tasks/vep_multieval_v1/runs/<run_id>/grade.json
+python tasks/vep_multieval/grade.py \
+    --submission tasks/vep_multieval/runs/<run_id>/answer.parquet \
+    --out        tasks/vep_multieval/runs/<run_id>/grade.json
 ```
 
 Deterministic. Reports per-partition AUPRC / AUROC / Brier / coverage,

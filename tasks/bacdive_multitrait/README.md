@@ -1,4 +1,4 @@
-# `bacdive_multitrait_v0` — genome-to-phenotype-profile, family-holdout
+# `bacdive_multitrait` — genome-to-phenotype-profile, family-holdout
 
 Predict a **culturability + ecology + metabolism** profile for a
 bacterial strain from its genome alone. Test strains are drawn from
@@ -80,7 +80,7 @@ consumes a species-level dedupe of that table.
 ## Regenerate the bundle
 
 ```bash
-python tasks/bacdive_multitrait_v0/build.py
+python tasks/bacdive_multitrait/build.py
 ```
 
 Downloads:
@@ -100,16 +100,16 @@ Then:
 ## Run
 
 ```bash
-uv run modal run harness/modal_runner.py::volume_upload --task bacdive_multitrait_v0
-uv run modal run --detach harness/modal_runner.py::launch --task bacdive_multitrait_v0
+uv run modal run harness/modal_runner.py::volume_upload --task bacdive_multitrait
+uv run modal run --detach harness/modal_runner.py::launch --task bacdive_multitrait
 ```
 
 ## Grade
 
 ```bash
-python tasks/bacdive_multitrait_v0/grade.py \
-    --submission tasks/bacdive_multitrait_v0/runs/<run_id>/answer.parquet \
-    --out       tasks/bacdive_multitrait_v0/runs/<run_id>/grade.json
+python tasks/bacdive_multitrait/grade.py \
+    --submission tasks/bacdive_multitrait/runs/<run_id>/answer.parquet \
+    --out       tasks/bacdive_multitrait/runs/<run_id>/grade.json
 ```
 
 Deterministic. Per-target: primary metric + coverage + baseline gap.

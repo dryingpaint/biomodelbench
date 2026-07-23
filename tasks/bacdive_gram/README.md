@@ -1,4 +1,4 @@
-# `bacdive_gram_v0` — bacterial Gram-staining from genome, family-holdout blind
+# `bacdive_gram` — bacterial Gram-staining from genome, family-holdout blind
 
 ## Task
 
@@ -23,7 +23,7 @@ model on the labeled training strains, and score the test strains.
 ## Regenerate the bundle
 
 ```bash
-python tasks/bacdive_gram_v0/build.py
+python tasks/bacdive_gram/build.py
 ```
 
 Downloads:
@@ -45,16 +45,16 @@ Then for each labeled bacterial species with a Gram call:
 ## Run
 
 ```bash
-uv run modal run harness/modal_runner.py::volume_upload --task bacdive_gram_v0
-uv run modal run --detach harness/modal_runner.py::launch --task bacdive_gram_v0
+uv run modal run harness/modal_runner.py::volume_upload --task bacdive_gram
+uv run modal run --detach harness/modal_runner.py::launch --task bacdive_gram
 ```
 
 ## Grade
 
 ```bash
-python tasks/bacdive_gram_v0/grade.py \
-    --submission tasks/bacdive_gram_v0/runs/<run_id>/answer.parquet \
-    --out       tasks/bacdive_gram_v0/runs/<run_id>/grade.json
+python tasks/bacdive_gram/grade.py \
+    --submission tasks/bacdive_gram/runs/<run_id>/answer.parquet \
+    --out       tasks/bacdive_gram/runs/<run_id>/grade.json
 ```
 
 Deterministic. Joins on `assembly_accession`, reports AUPRC / AUROC /

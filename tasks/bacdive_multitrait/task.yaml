@@ -1,4 +1,4 @@
-id: bacdive_multitrait_v0
+id: bacdive_multitrait
 title: Bacterial multi-phenotype profile from genome, family-holdout blind eval
 modality: organism
 compute_tier: T2

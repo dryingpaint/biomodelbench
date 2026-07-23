@@ -1,4 +1,4 @@
-# BioModelBench — VEP multi-eval v1
+# BioModelBench — VEP multi-eval
 
 ## Task
 

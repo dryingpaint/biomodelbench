@@ -1,4 +1,4 @@
-"""Deterministic grader for vep_multieval_v1.
+"""Deterministic grader for vep_multieval.
 
 Reads the shared submission (one score per variant), joins each hidden
 answer file on (chrom, pos, ref, alt), and reports AUPRC / AUROC per

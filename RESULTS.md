@@ -8,9 +8,9 @@ An agent (Claude Code or Codex, one-shot, headless,
 `--dangerously-skip-permissions`) given only the task specification —
 no method hints, no allowlist, no blacklist, no data-source
 suggestions, 10 h of H100 — reaches within striking distance of
-published SOTA on `vep_multieval_v1` (three-partition variant-effect
+published SOTA on `vep_multieval` (three-partition variant-effect
 prediction) and produces a first-pass 0.70 normalized composite on
-`bacdive_multitrait_v0` (18-target family-holdout genome→phenotype
+`bacdive_multitrait` (18-target family-holdout genome→phenotype
 benchmark).
 
 **Best results across all runs to date:**
@@ -53,7 +53,7 @@ approaches — repeated across many spawns — were:
   regulatory GWAS variants; the gate uses TraitGym membership as a
   label-free indicator.
 
-## Task 1: `bacdive_multitrait_v0` — 18-target phenotype profile
+## Task 1: `bacdive_multitrait` — 18-target phenotype profile
 
 **Setup**: 3,740 train / 622 test species, 307 vs 76 disjoint families,
 seed 0. Agent gets `(assembly_accession, phylum)` per strain and 18
@@ -200,13 +200,13 @@ trained-ensemble SOTA.
 
 ```bash
 # VEP
-python tasks/vep_multieval_v1/build.py
-python tasks/vep_multieval_v1/scripts/annotate_clinvar_mc.py
-uv run modal run harness/modal_runner.py::volume_upload --task vep_multieval_v1
-uv run modal run --detach harness/modal_runner.py::launch --task vep_multieval_v1
+python tasks/vep_multieval/build.py
+python tasks/vep_multieval/scripts/annotate_clinvar_mc.py
+uv run modal run harness/modal_runner.py::volume_upload --task vep_multieval
+uv run modal run --detach harness/modal_runner.py::launch --task vep_multieval
 
 # Multi-trait
-python tasks/bacdive_multitrait_v0/build.py
-uv run modal run harness/modal_runner.py::volume_upload --task bacdive_multitrait_v0
-uv run modal run --detach harness/modal_runner.py::launch --task bacdive_multitrait_v0
+python tasks/bacdive_multitrait/build.py
+uv run modal run harness/modal_runner.py::volume_upload --task bacdive_multitrait
+uv run modal run --detach harness/modal_runner.py::launch --task bacdive_multitrait
 ```

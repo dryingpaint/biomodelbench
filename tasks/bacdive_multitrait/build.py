@@ -1,4 +1,4 @@
-"""Build the bacdive_multitrait_v0 bundle.
+"""Build the bacdive_multitrait bundle.
 
 Produces:
   bundle/train.parquet   → strains with per-target labels; family-disjoint from test

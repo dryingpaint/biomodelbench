@@ -1,4 +1,4 @@
-# Method — Bacterial Gram-stain prediction (bacdive_gram_v0)
+# Method — Bacterial Gram-stain prediction (bacdive_gram)
 
 ## Approach
 Gram status is a genome-encoded phenotype: Gram-negatives (diderms) build an

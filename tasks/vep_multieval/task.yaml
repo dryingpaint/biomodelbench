@@ -1,4 +1,4 @@
-id: vep_multieval_v1
+id: vep_multieval
 title: Variant-effect prediction across 3 partitions (TraitGym complex + Mendelian + ClinVar), SOTA-target
 modality: dna_variant
 compute_tier: T2
@@ -13,16 +13,6 @@ description: |
   gets only (chrom, pos, ref, alt) with no source flag — one scoring
   function must rank all three partitions well.
 
-  v1 vs v0 differences:
-  - v1 adds TraitGym Mendelian as a third hidden partition.
-  - v1 explicitly permits the agent to compile its own labeled train
-    set from public sources (v0 signaled zero-shot by shipping no
-    train partition).
-  - v1 provides a comprehensive SOTA table with named models across
-    both zero-shot and trained categories, so the agent can position
-    against the leaderboard.
-  - v1 runs on H100 (80 GB VRAM) instead of A10G — the agent can now
-    load Enformer / Borzoi / Evo-2 / ESM-2 15B locally.
 answer_file: answer.parquet
 data_files:
   - bundle/test.parquet

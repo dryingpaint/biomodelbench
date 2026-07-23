@@ -1,4 +1,4 @@
-"""Build the vep_multieval_v1 bundle.
+"""Build the vep_multieval bundle.
 
 Same shape as v0, adds TraitGym Mendelian as a third hidden partition and
 uses the same ClinVar sub-sample. Total test size ≈ 42,500 rows.
@@ -13,12 +13,12 @@ source each row is from. The grader has separate hidden answer files
 per source.
 
 Produces:
-  tasks/vep_multieval_v1/bundle/test.parquet
-  tasks/vep_multieval_v1/bundle/prompt.md
-  tasks/vep_multieval_v1/hidden/traitgym_complex_answer.parquet
-  tasks/vep_multieval_v1/hidden/traitgym_mendelian_answer.parquet
-  tasks/vep_multieval_v1/hidden/clinvar_answer.parquet
-  tasks/vep_multieval_v1/hidden/build_stats.json
+  tasks/vep_multieval/bundle/test.parquet
+  tasks/vep_multieval/bundle/prompt.md
+  tasks/vep_multieval/hidden/traitgym_complex_answer.parquet
+  tasks/vep_multieval/hidden/traitgym_mendelian_answer.parquet
+  tasks/vep_multieval/hidden/clinvar_answer.parquet
+  tasks/vep_multieval/hidden/build_stats.json
 """
 from __future__ import annotations
 

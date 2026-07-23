@@ -1,4 +1,4 @@
-# Method — Bacterial multi-phenotype profile (bacdive_multitrait_v0)
+# Method — Bacterial multi-phenotype profile (bacdive_multitrait)
 
 ## Overview
 Phenotypes are predicted **mechanistically from genome content**, so the models

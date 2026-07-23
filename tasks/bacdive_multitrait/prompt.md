@@ -1,4 +1,4 @@
-# BioModelBench — Bacterial multi-phenotype profile (bacdive_multitrait_v0)
+# BioModelBench — Bacterial multi-phenotype profile (bacdive_multitrait)
 
 ## Task
 

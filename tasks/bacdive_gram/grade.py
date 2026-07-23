@@ -1,4 +1,4 @@
-"""Deterministic grader for bacdive_gram_v0.
+"""Deterministic grader for bacdive_gram.
 
 Reads a submission parquet, joins against the hidden Gram-staining labels
 on `assembly_accession`, and reports AUPRC / AUROC / Brier / coverage.

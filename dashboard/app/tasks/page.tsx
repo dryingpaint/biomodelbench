@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { loadAllTasks } from "@/lib/tasks";
+import { loadChartRows, SotaChart } from "../sota-chart";
 
 export default function TasksIndex() {
   const tasks = loadAllTasks();
+  const chartRows = loadChartRows();
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10">
-      <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
-        Tasks
+    <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
+      <div>
+        <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2">
+          Tasks
+        </div>
+        <h1 className="text-2xl font-semibold text-stone-900">All tasks</h1>
       </div>
-      <h1 className="text-2xl font-semibold text-stone-900 mb-6">All tasks</h1>
+
+      <SotaChart rows={chartRows} />
+
       <div className="space-y-3">
         {tasks.map((t) => (
           <Link
