@@ -25,7 +25,7 @@ export interface UnifiedRow {
 }
 
 type SortKey =
-  | "kind" | "partition" | "method" | "auprc" | "auroc"
+  | "kind" | "partition" | "method" | "reasoningEffort" | "auprc" | "auroc"
   | "durationSeconds" | "totalCostUsd";
 type SortDir = "asc" | "desc";
 
@@ -61,11 +61,13 @@ export default function TaskTabs({
   const unified: UnifiedRow[] = useMemo(() => {
     const rows: UnifiedRow[] = [];
     for (const r of runs) {
+      // Method cell shows agent + model; reasoning is its own column.
+      const methodParts = [r.agent, r.primaryModel].filter(Boolean);
       rows.push({
         kind: "run",
         taskId: r.taskId,
         partition: r.partition,
-        method: [r.agent, r.primaryModel, r.reasoningEffort].filter(Boolean).join(" · ") || (r.primaryModel ?? "agent"),
+        method: methodParts.join(" · ") || "agent",
         runId: r.runId,
         agent: r.agent,
         reasoningEffort: r.reasoningEffort,
@@ -194,6 +196,7 @@ export default function TaskTabs({
                   <SortHead k="kind" label="Kind" />
                   <SortHead k="partition" label="Partition" />
                   <SortHead k="method" label="Method / Agent" />
+                  <SortHead k="reasoningEffort" label="Reasoning" />
                   <SortHead k="auprc" label="AUPRC" align="right" />
                   <SortHead k="auroc" label="AUROC" align="right" />
                   <SortHead k="durationSeconds" label="Duration" align="right" />
@@ -241,6 +244,9 @@ export default function TaskTabs({
                           <span className="font-mono text-xs text-stone-800">{r.method}</span>
                         )}
                       </td>
+                      <td className="px-4 py-2 font-mono text-xs text-stone-700">
+                        {r.reasoningEffort ?? "—"}
+                      </td>
                       <td className="text-right px-4 py-2 font-mono tabular-nums text-stone-800">
                         {r.auprc !== null && r.auprc !== undefined ? r.auprc.toFixed(4) : "—"}
                       </td>
@@ -260,7 +266,7 @@ export default function TaskTabs({
                 })}
                 {sorted.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-4 text-sm text-stone-500 text-center">
+                    <td colSpan={8} className="px-4 py-4 text-sm text-stone-500 text-center">
                       No entries.
                     </td>
                   </tr>
