@@ -82,6 +82,7 @@ runs/**/models/
 runs/**/*.csv
 runs/**/*.txt
 runs/**/*.md.bak
+runs/**/.continuation_*.md
 
 # Un-ignore the trace log so the dashboard can render it
 !runs/**/agent_log.jsonl

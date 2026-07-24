@@ -1,0 +1,29 @@
+{
+  "task": "BioModelBench VEP multi-eval v1",
+  "test_variants": 19427,
+  "test_composition_discovered": {
+    "complex_traits_matched_9": 11400,
+    "mendelian_traits_matched_9": 3380,
+    "clinvar_overlap": 5394,
+    "note": "test = TraitGym matched_9 (complex+mendelian) + ClinVar subset; labels are public but treated as leakage and excluded from training."
+  },
+  "data_sources": [
+    {"name": "ClinVar VCF GRCh38", "url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz", "use": "training labels (path vs benign SNVs)", "parsed_path_benign_snvs": 1480180, "removed_test_overlap_leakage": 5392, "removed_held_out_genes": 187725, "final_pool": 1287063, "train_subsample": 90000},
+    {"name": "AlphaMissense hg38", "url": "https://zenodo.org/records/8208688/files/AlphaMissense_hg38.tsv.gz", "use": "missense pathogenicity feature"},
+    {"name": "phyloP-241m (cactus241way)", "url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/cactus241way/cactus241way.phyloP.bw", "use": "conservation feature"},
+    {"name": "phyloP-100way", "url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/hg38.phyloP100way.bw", "use": "conservation feature"},
+    {"name": "phastCons-100way", "url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.phastCons100way.bw", "use": "conservation feature"},
+    {"name": "GPN-MSA hg38 scores", "url": "https://huggingface.co/datasets/songlab/gpn-msa-hg38-scores/resolve/main/scores.tsv.bgz", "use": "whole-genome LLR feature (in progress)"},
+    {"name": "CADD v1.7 GRCh38", "url": "https://kircherlab.bihealth.org/download/CADD/v1.7/GRCh38/whole_genome_SNVs.tsv.gz", "use": "attempted; host rate-limited/unreachable during run"},
+    {"name": "TraitGym (diagnostic labels only)", "url": "https://huggingface.co/datasets/songlab/TraitGym", "use": "public labels used ONLY for honest per-partition diagnostic, never training"}
+  ],
+  "held_out_genes_excluded": 608,
+  "leakage_dedup": {"test_tuple_set_size": 19427, "clinvar_train_variants_removed_for_overlap": 5392},
+  "iterations": [
+    {"id": 1, "desc": "Unsupervised conservation rank-average (phyloP241+phastCons)", "diagnostic": {"note": "baseline safety answer"}},
+    {"id": 2, "desc": "LR combiner on conservation + AlphaMissense (ClinVar-trained)", "diagnostic_auprc": {"clinvar": 0.942, "mendelian": 0.704, "complex": 0.202}, "diagnostic_auroc": {"clinvar": 0.940, "mendelian": 0.868, "complex": 0.596}, "clinvar_cv_auroc": 0.9465},
+    {"id": 3, "desc": "ClinVar LGB on conservation+AM+GPN-MSA", "diagnostic_auprc": {"clinvar": 0.976, "mendelian": 0.684, "complex": 0.187}, "diagnostic_auroc": {"clinvar": 0.976, "mendelian": 0.893, "complex": 0.579}, "clinvar_cv_auroc": 0.9785, "note": "GPN lifts clinvar but coding overfit leaves complex flat"},
+    {"id": 4, "desc": "Unsupervised rank(phyloP241 + |GPN-MSA|)", "diagnostic_auprc": {"clinvar": 0.946, "mendelian": 0.706, "complex": 0.225}, "diagnostic_auroc": {"clinvar": 0.948, "mendelian": 0.877, "complex": 0.613}},
+    {"id": 5, "desc": "FINAL: 0.5*rank(unsup) + 0.5*rank(LGB_clinvar)", "diagnostic_auprc": {"clinvar": 0.9693, "mendelian": 0.7153, "complex": 0.2071}, "diagnostic_auroc": {"clinvar": 0.9700, "mendelian": 0.8959, "complex": 0.6037}}
+  ]
+}

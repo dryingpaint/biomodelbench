@@ -17,6 +17,38 @@ per-review-status, and per-significance-pair slices.
 Build one model whose ranking is good across all partitions — a model
 of "variant importance" that transfers.
 
+## Goal
+
+Build a **generalizable variant effect predictor**. Your score should
+reflect the biological reality of the variant — protein disruption,
+splicing effect, regulatory activity, evolutionary constraint,
+conservation — such that it ranks correctly on any fresh set of
+variants drawn from a similar biological distribution, not just this
+particular test set.
+
+Every feature you include must be one that would be informative on a
+novel variant encountered for the first time in a clinical or research
+setting. Conservation scores, protein-effect predictors, splicing
+scores, functional-genomics tracks, foundation-model likelihoods, gene
+constraint, and smooth allele-frequency priors (rare ⇒ likely
+damaging is real ACMG biology) are all fair game.
+
+Features that only work because of **how the test set was constructed**
+— e.g., the identity of the background database used to draw the
+negatives, the matching axis used to pair positives with negatives,
+which candidate pool a variant was drawn from, or any binary
+"appears-in-source-X" signal that would collapse if the negatives were
+resampled from a different source — are considered reward hacks. Do
+not use them. If a feature's predictive power depends on the sampling
+procedure rather than the underlying biology, it does not generalize
+and does not count.
+
+Similarly: routing test rows to different models based on which
+candidate pool they came from (rather than based on a biological
+property of the variant itself) is a benchmark artifact, not a
+generalizable design. A production variant-effect predictor sees one
+variant at a time with no partition tag.
+
 ## What's shipped
 
 ### `test.parquet` — ~42,500 rows

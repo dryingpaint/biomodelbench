@@ -1,0 +1,120 @@
+{
+  "test_tuple_count": 19427,
+  "final_labeled_train_size": 0,
+  "resources": [
+    {
+      "name": "TraitGym dataset repository",
+      "url": "https://huggingface.co/datasets/songlab/TraitGym",
+      "api": "https://huggingface.co/api/datasets/songlab/TraitGym/tree/main/",
+      "files_touched": [
+        "complex_traits_matched_9/test.parquet",
+        "mendelian_traits_matched_9/test.parquet",
+        "complex_traits_v22_matched_9/test.parquet",
+        "mendelian_traits_v21_matched_9/test.parquet",
+        "mendelian_traits_v22_matched_9/test.parquet",
+        "original-task CADD, GPN-MSA, Borzoi, Enformer, phyloP and phastCons feature parquet files",
+        "v22 CADD, GPN-MSA and Borzoi feature parquet files",
+        "published LR prediction parquet files (inspected, then discarded)"
+      ],
+      "use": "Coordinate-only source matching and zero-shot inference features",
+      "test_matches": {
+        "complex_traits_matched_9": 11400,
+        "mendelian_traits_matched_9": 3380,
+        "shared_between_tasks": 27
+      }
+    },
+    {
+      "name": "TraitGym code",
+      "url": "https://github.com/songlab-cal/TraitGym.git",
+      "use": "Inspected published feature definitions and LR protocol"
+    },
+    {
+      "name": "UCSC CADD v1.7 allele-specific tracks",
+      "url": "http://hgdownload.soe.ucsc.edu/gbdb/hg38/cadd1.7/{a,c,g,t}.bw",
+      "documentation": "https://cadd.bihealth.org/download",
+      "queried_rows": 4674,
+      "covered_rows": 4610
+    },
+    {
+      "name": "UCSC AlphaMissense allele-specific tracks",
+      "url": "http://hgdownload.soe.ucsc.edu/gbdb/hg38/alphaMissense/{a,c,g,t}.bw",
+      "queried_rows": 4674,
+      "covered_rows": 2453
+    },
+    {
+      "name": "UCSC REVEL allele-specific tracks",
+      "url": "http://hgdownload.soe.ucsc.edu/gbdb/hg38/revel/{a,c,g,t}.bw",
+      "queried_rows": 4674,
+      "covered_rows": 2588
+    },
+    {
+      "name": "UCSC bigWigToBedGraph utility",
+      "url": "https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bigWigToBedGraph",
+      "use": "One-base HTTP range extraction"
+    },
+    {
+      "name": "EVEE pretrained variant-effect API",
+      "url": "https://xix0d0o8le.execute-api.us-east-1.amazonaws.com/variants/{variant_id}",
+      "documentation": "https://github.com/goodfire-ai/evee-mcp",
+      "queried_rows": 4674,
+      "covered_rows": 4655,
+      "retained_fields": [
+        "pathogenicity",
+        "consequence",
+        "gene",
+        "pretrained annotation-probe outputs"
+      ],
+      "label_fields_retained": false
+    },
+    {
+      "name": "EVEE manuscript resources",
+      "url": "https://github.com/goodfire-ai/evee-manuscript",
+      "archive_url": "https://zenodo.org/records/19701997",
+      "use": "Verified held-out-gene protocol and data provenance; archive not downloaded"
+    }
+  ],
+  "deduplication": [
+    {
+      "candidate_train_dataset": "complex_traits_v22_matched_9",
+      "rows_before": 9590,
+      "exact_test_tuples_removed": 1386,
+      "rows_after": 8204,
+      "positive_rows_after": 0,
+      "used_for_training": false
+    },
+    {
+      "candidate_train_dataset": "mendelian_traits_v22_matched_9",
+      "rows_before": 230,
+      "exact_test_tuples_removed": 24,
+      "rows_after": 206,
+      "positive_rows_after": 0,
+      "used_for_training": false
+    }
+  ],
+  "iterations": [
+    {
+      "iteration": 1,
+      "method": "Remote allele-specific CADD feasibility baseline",
+      "validation_score": null,
+      "status": "superseded"
+    },
+    {
+      "iteration": 2,
+      "method": "Published TraitGym chromosome-held-out LR predictions",
+      "validation_score": null,
+      "status": "discarded_due_to_global_exact-tuple_leakage"
+    },
+    {
+      "iteration": 3,
+      "method": "Leakage-filtered TraitGym v22 supervised transfer",
+      "validation_score": null,
+      "status": "aborted_no_positive_rows_after_dedup"
+    },
+    {
+      "iteration": 4,
+      "method": "Zero-shot TraitGym rank ensemble plus EVEE/CADD/AlphaMissense/REVEL clinical ensemble",
+      "validation_score": null,
+      "status": "final"
+    }
+  ]
+}
